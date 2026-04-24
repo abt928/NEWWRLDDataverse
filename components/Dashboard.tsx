@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { signIn as passkeySignIn } from 'next-auth/webauthn';
 import type { LuminateDataset, DistroKidDataset, FilterState } from '@/lib/types';
 import { defaultFilters, computeOverviewKPIs, computeSongAggregations, computeReleaseGroupAggregations, computeGrowthMetrics, computeDealInsights, computeCatalogComposition, computeArtistTimeline } from '@/lib/analytics';
 import OverviewPanel from './panels/OverviewPanel';
@@ -178,6 +179,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
               <div className="sidebar-user-name">{session.user.name || 'User'}</div>
               <div className="sidebar-user-email">{session.user.email}</div>
             </div>
+            <button className="sidebar-passkey" onClick={() => passkeySignIn('passkey', { action: 'register' })} title="Register passkey">🔑</button>
             <button className="sidebar-signout" onClick={() => signOut()} title="Sign out">⏻</button>
           </div>
         )}

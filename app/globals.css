@@ -369,3 +369,6 @@ a{color:var(--color-indigo);text-decoration:none}
 .sidebar-user-email{font-size:0.6rem;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sidebar-signout{background:none;border:none;color:var(--text-tertiary);font-size:0.75rem;cursor:pointer;padding:0.2rem}
 .sidebar-signout:hover{color:var(--color-red)}
+.sidebar-passkey{background:none;border:none;color:var(--text-tertiary);font-size:0.75rem;cursor:pointer;padding:0.2rem}
+.sidebar-passkey:hover{color:var(--color-indigo)}
+.auth-hint{text-align:center;margin-top:1rem;font-size:0.7rem;color:var(--text-tertiary);font-style:italic}
