@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { parseLuminateWorkbook } from '@/lib/parser';
-import { parseDistroKidZip } from '@/lib/distrokid-parser';
 import type { LuminateDataset, DistroKidDataset } from '@/lib/types';
 import Dashboard from '@/components/Dashboard';
 
@@ -30,10 +28,9 @@ interface QueuedFile {
   id: number;
   name: string;
   type: 'luminate' | 'distrokid';
-  status: 'parsing' | 'ready' | 'saving' | 'saved' | 'error';
+  status: 'ready' | 'saving' | 'saved' | 'error';
   error?: string;
-  luminateData?: LuminateDataset;
-  distrokidData?: DistroKidDataset;
+  rawFile: File;
 }
 
 function formatNum(n: number): string {
@@ -85,7 +82,7 @@ export default function HomePage() {
   const [showUpload, setShowUpload] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'success' | 'error' }[]>([]);
 
-  // Bulk upload queue
+  // Bulk upload queue — stores raw File objects
   const [fileQueue, setFileQueue] = useState<QueuedFile[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -118,50 +115,27 @@ export default function HomePage() {
     if (status === 'authenticated') fetchArtists();
   }, [fetchArtists, status]);
 
-  // Parse a single file and add to queue
-  const processFile = useCallback(async (file: File) => {
-    const id = Date.now() + Math.random();
-    const isLuminate = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-    const isDistroKid = file.name.endsWith('.zip');
+  // Add files to queue (no parsing — just validate extension)
+  const handleFiles = useCallback((files: FileList) => {
+    const newFiles: QueuedFile[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const isLuminate = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+      const isDistroKid = file.name.endsWith('.zip');
+      if (!isLuminate && !isDistroKid) continue;
 
-    if (!isLuminate && !isDistroKid) return;
-
-    const queueItem: QueuedFile = {
-      id,
-      name: file.name,
-      type: isLuminate ? 'luminate' : 'distrokid',
-      status: 'parsing',
-    };
-    setFileQueue((prev) => [...prev, queueItem]);
-
-    try {
-      const buffer = await file.arrayBuffer();
-      if (isLuminate) {
-        const parsed = parseLuminateWorkbook(buffer);
-        setFileQueue((prev) =>
-          prev.map((f) => f.id === id ? { ...f, status: 'ready' as const, luminateData: parsed } : f)
-        );
-      } else {
-        const parsed = await parseDistroKidZip(buffer);
-        setFileQueue((prev) =>
-          prev.map((f) => f.id === id ? { ...f, status: 'ready' as const, distrokidData: parsed } : f)
-        );
-      }
-    } catch (err) {
-      setFileQueue((prev) =>
-        prev.map((f) => f.id === id ? { ...f, status: 'error' as const, error: err instanceof Error ? err.message : 'Parse failed' } : f)
-      );
+      newFiles.push({
+        id: Date.now() + Math.random(),
+        name: file.name,
+        type: isLuminate ? 'luminate' : 'distrokid',
+        status: 'ready',
+        rawFile: file,
+      });
     }
+    setFileQueue((prev) => [...prev, ...newFiles]);
   }, []);
 
-  // Handle file input (supports multiple)
-  const handleFiles = useCallback(async (files: FileList) => {
-    for (let i = 0; i < files.length; i++) {
-      await processFile(files[i]);
-    }
-  }, [processFile]);
-
-  // Save all ready files to DB
+  // Upload all files via FormData (raw file sent to server for parsing)
   const handleSaveAll = useCallback(async () => {
     setSaving(true);
     const readyFiles = fileQueue.filter((f) => f.status === 'ready');
@@ -173,46 +147,29 @@ export default function HomePage() {
       );
 
       try {
-        if (file.type === 'luminate' && file.luminateData) {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(file.luminateData),
-          });
-          if (res.ok) {
-            setFileQueue((prev) =>
-              prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
-            );
-            savedCount++;
-          } else {
+        const formData = new FormData();
+        formData.append('file', file.rawFile);
+        formData.append('type', file.type);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          setFileQueue((prev) =>
+            prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
+          );
+          savedCount++;
+        } else {
+          let errMsg = 'Upload failed';
+          try {
             const err = await res.json();
-            throw new Error(err.error || 'Upload failed');
+            errMsg = err.error || errMsg;
+          } catch {
+            errMsg = `Server error (${res.status})`;
           }
-        } else if (file.type === 'distrokid' && file.distrokidData) {
-          const entries = (file.distrokidData.rawEntries || []).map((e) => ({
-            saleMonth: e.saleMonth,
-            store: e.store,
-            artist: e.artist,
-            title: e.title,
-            isrc: e.isrc,
-            country: e.country,
-            quantity: e.quantity,
-            earnings: e.earnings,
-          }));
-          const res = await fetch('/api/upload/distrokid', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entries, artistName: file.distrokidData.artistName }),
-          });
-          if (res.ok) {
-            setFileQueue((prev) =>
-              prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
-            );
-            savedCount++;
-          } else {
-            const err = await res.json();
-            throw new Error(err.error || 'Upload failed');
-          }
+          throw new Error(errMsg);
         }
       } catch (err) {
         setFileQueue((prev) =>
@@ -227,7 +184,6 @@ export default function HomePage() {
     }
 
     setSaving(false);
-    // Close modal after a beat
     setTimeout(() => {
       setShowUpload(false);
       setFileQueue([]);
@@ -264,7 +220,6 @@ export default function HomePage() {
 
   const statusIcon = (s: QueuedFile['status']) => {
     switch (s) {
-      case 'parsing': return '⏳';
       case 'ready': return '✓';
       case 'saving': return '📤';
       case 'saved': return '✅';
@@ -349,12 +304,11 @@ export default function HomePage() {
             <div className="modal-header">
               <div>
                 <h3>Upload Data Sources</h3>
-                <p className="modal-subtitle">Drop all your files — Luminate (.xlsx) and DistroKid (.zip). We'll handle the rest.</p>
+                <p className="modal-subtitle">Drop all your files — Luminate (.xlsx) and DistroKid (.zip). Files are sent directly to the server.</p>
               </div>
               <button className="modal-close" onClick={() => !saving && setShowUpload(false)}>✕</button>
             </div>
 
-            {/* Drop zone */}
             <div
               className="upload-dropzone"
               onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
@@ -377,7 +331,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* File queue */}
             {fileQueue.length > 0 && (
               <div className="upload-queue">
                 {fileQueue.map((f) => (
@@ -409,7 +362,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Toasts */}
       {toasts.length > 0 && (
         <div className="toast-container">
           {toasts.map((t) => (
