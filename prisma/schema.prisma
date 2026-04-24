@@ -1,0 +1,168 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================
+// Auth Models
+// ============================================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  artists       Artist[]
+  pinnedMetrics PinnedMetric[]
+  shareLinks    ShareLink[]
+}
+
+// ============================================================
+// Artist & Luminate Models
+// ============================================================
+
+model Report {
+  id         String   @id @default(cuid())
+  fileName   String
+  reportName String
+  timeFrame  String
+  location   String   @default("Worldwide")
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  artists    Artist[]
+}
+
+model Artist {
+  id                  String             @id @default(cuid())
+  luminateId          String?            @unique
+  name                String
+  genre               String             @default("")
+  reportId            String?
+  report              Report?            @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  userId              String
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekly              ArtistWeekly[]
+  releases            ReleaseGroup[]
+  songs               Song[]
+  distrokidData       DistroKidMonthly[]
+  pinnedMetrics       PinnedMetric[]
+  shareLinks          ShareLink[]
+  luminateUploadedAt  DateTime?
+  distrokidUploadedAt DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model ArtistWeekly {
+  id        String @id @default(cuid())
+  artistId  String
+  artist    Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  week      Int
+  year      Int
+  dateRange String
+  quantity  Int
+  ytd       Int?
+  atd       Int?
+
+  @@unique([artistId, week, year])
+}
+
+model ReleaseGroup {
+  id          String               @id @default(cuid())
+  luminateId  String               @unique
+  artistId    String
+  artist      Artist               @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  title       String
+  releaseType String
+  releaseDate String?
+  weekly      ReleaseGroupWeekly[]
+}
+
+model ReleaseGroupWeekly {
+  id             String       @id @default(cuid())
+  releaseGroupId String
+  releaseGroup   ReleaseGroup @relation(fields: [releaseGroupId], references: [id], onDelete: Cascade)
+  week           Int
+  year           Int
+  dateRange      String
+  quantity       Int
+  ytd            Int?
+  atd            Int?
+
+  @@unique([releaseGroupId, week, year])
+}
+
+model Song {
+  id         String       @id @default(cuid())
+  luminateId String       @unique
+  artistId   String
+  artist     Artist       @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  title      String
+  weekly     SongWeekly[]
+}
+
+model SongWeekly {
+  id        String @id @default(cuid())
+  songId    String
+  song      Song   @relation(fields: [songId], references: [id], onDelete: Cascade)
+  week      Int
+  year      Int
+  dateRange String
+  quantity  Int
+  ytd       Int?
+  atd       Int?
+
+  @@unique([songId, week, year])
+}
+
+// ============================================================
+// DistroKid Models
+// ============================================================
+
+model DistroKidMonthly {
+  id        String @id @default(cuid())
+  artistId  String
+  artist    Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  saleMonth String
+  store     String
+  title     String
+  isrc      String  @default("")
+  country   String  @default("")
+  quantity  Int
+  earnings  Float
+
+  @@unique([artistId, saleMonth, store, title, isrc, country])
+  @@index([artistId])
+}
+
+// ============================================================
+// Personalization & Sharing
+// ============================================================
+
+model PinnedMetric {
+  id        String @id @default(cuid())
+  userId    String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artistId  String
+  artist    Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  metricKey String
+  position  Int    @default(0)
+
+  @@unique([userId, artistId, metricKey])
+}
+
+model ShareLink {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artistId  String
+  artist    Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  token     String    @unique @default(cuid())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+}
