@@ -248,4 +248,5 @@ export interface DistroKidDataset {
     earnings: number;
     streams: number;
   }[];
+  rawEntries?: DistroKidEntry[];
 }

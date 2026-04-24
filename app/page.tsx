@@ -154,23 +154,27 @@ export default function HomePage() {
     // Auto-persist DistroKid data
     if (distrokidFile) {
       try {
-        // Send parsed entries to the API for DB storage
-        const entries = distrokidFile.songEarnings.map((s) => ({
-          saleMonth: '', // aggregated
-          store: '',
-          artist: s.artist,
-          title: s.title,
-          isrc: s.isrc,
-          country: '',
-          quantity: s.streams,
-          earnings: s.earnings,
+        const entries = (distrokidFile.rawEntries || []).map((e) => ({
+          saleMonth: e.saleMonth,
+          store: e.store,
+          artist: e.artist,
+          title: e.title,
+          isrc: e.isrc,
+          country: e.country,
+          quantity: e.quantity,
+          earnings: e.earnings,
         }));
-        await fetch('/api/upload/distrokid', {
+        const res = await fetch('/api/upload/distrokid', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ entries: [], artistName: distrokidFile.artistName }),
+          body: JSON.stringify({ entries, artistName: distrokidFile.artistName }),
         });
-        addToast('DistroKid data saved successfully', 'success');
+        if (res.ok) {
+          addToast('DistroKid data saved successfully', 'success');
+          await fetchArtists();
+        } else {
+          addToast('DistroKid upload failed', 'error');
+        }
       } catch {
         addToast('DistroKid data loaded (local only)', 'error');
       }

@@ -31,7 +31,8 @@ export async function parseDistroKidZip(buffer: ArrayBuffer): Promise<DistroKidD
     }
   }
 
-  return aggregateEntries(allEntries);
+  const result = aggregateEntries(allEntries);
+  return { ...result, rawEntries: allEntries };
 }
 
 // ============================================================
