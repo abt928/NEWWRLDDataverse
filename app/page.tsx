@@ -19,16 +19,45 @@ interface ArtistCard {
   avg12w: number;
   songCount: number;
   releaseCount: number;
+  distrokidCount: number;
   sparkline: number[];
   lastUpdated: string;
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
 }
 
+interface QueuedFile {
+  id: number;
+  name: string;
+  type: 'luminate' | 'distrokid';
+  status: 'parsing' | 'ready' | 'saving' | 'saved' | 'error';
+  error?: string;
+  luminateData?: LuminateDataset;
+  distrokidData?: DistroKidDataset;
+}
+
 function formatNum(n: number): string {
   if (Math.abs(n) >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
   if (Math.abs(n) >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
   return n.toLocaleString();
+}
+
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
 }
 
 function Sparkline({ data }: { data: number[] }) {
@@ -39,7 +68,6 @@ function Sparkline({ data }: { data: number[] }) {
   return <svg width={w} height={h} className="sparkline-svg"><polyline points={pts} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" /></svg>;
 }
 
-// Toast component
 function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
@@ -55,20 +83,15 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload] = useState(false);
-  const [dragOver, setDragOver] = useState<'luminate' | 'distrokid' | null>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'success' | 'error' }[]>([]);
 
-  // Multi-source upload state
-  const [luminateFile, setLuminateFile] = useState<LuminateDataset | null>(null);
-  const [distrokidFile, setDistrokidFile] = useState<DistroKidDataset | null>(null);
-  const [luminateStatus, setLuminateStatus] = useState<string | null>(null);
-  const [distrokidStatus, setDistrokidStatus] = useState<string | null>(null);
-  const [parsing, setParsing] = useState(false);
+  // Bulk upload queue
+  const [fileQueue, setFileQueue] = useState<QueuedFile[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  // Dashboard mode
-  const [showDashboard, setShowDashboard] = useState(false);
+  // Single artist drill-down
+  const [activeDashboard, setActiveDashboard] = useState<{ luminate?: LuminateDataset; distrokid?: DistroKidDataset } | null>(null);
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -95,114 +118,138 @@ export default function HomePage() {
     if (status === 'authenticated') fetchArtists();
   }, [fetchArtists, status]);
 
-  const handleLuminateFile = useCallback(async (file: File) => {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-      setLuminateStatus('⚠ Please upload a .xlsx file');
-      return;
-    }
-    setParsing(true);
-    setLuminateStatus('Parsing Luminate spreadsheet…');
+  // Parse a single file and add to queue
+  const processFile = useCallback(async (file: File) => {
+    const id = Date.now() + Math.random();
+    const isLuminate = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+    const isDistroKid = file.name.endsWith('.zip');
+
+    if (!isLuminate && !isDistroKid) return;
+
+    const queueItem: QueuedFile = {
+      id,
+      name: file.name,
+      type: isLuminate ? 'luminate' : 'distrokid',
+      status: 'parsing',
+    };
+    setFileQueue((prev) => [...prev, queueItem]);
+
     try {
       const buffer = await file.arrayBuffer();
-      const parsed = parseLuminateWorkbook(buffer);
-      setLuminateFile(parsed);
-      setLuminateStatus(`✓ ${parsed.summary.reportName} — ${parsed.songWeekly.length.toLocaleString()} song rows`);
+      if (isLuminate) {
+        const parsed = parseLuminateWorkbook(buffer);
+        setFileQueue((prev) =>
+          prev.map((f) => f.id === id ? { ...f, status: 'ready' as const, luminateData: parsed } : f)
+        );
+      } else {
+        const parsed = await parseDistroKidZip(buffer);
+        setFileQueue((prev) =>
+          prev.map((f) => f.id === id ? { ...f, status: 'ready' as const, distrokidData: parsed } : f)
+        );
+      }
     } catch (err) {
-      setLuminateStatus(`✗ Parse failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setFileQueue((prev) =>
+        prev.map((f) => f.id === id ? { ...f, status: 'error' as const, error: err instanceof Error ? err.message : 'Parse failed' } : f)
+      );
     }
-    setParsing(false);
   }, []);
 
-  const handleDistroKidFile = useCallback(async (file: File) => {
-    if (!file.name.endsWith('.zip')) {
-      setDistrokidStatus('⚠ Please upload a .zip file');
-      return;
+  // Handle file input (supports multiple)
+  const handleFiles = useCallback(async (files: FileList) => {
+    for (let i = 0; i < files.length; i++) {
+      await processFile(files[i]);
     }
-    setParsing(true);
-    setDistrokidStatus('Extracting ZIP archives…');
-    try {
-      const buffer = await file.arrayBuffer();
-      const parsed = await parseDistroKidZip(buffer);
-      setDistrokidFile(parsed);
-      setDistrokidStatus(`✓ ${parsed.artistName} — $${parsed.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })} across ${parsed.monthlyRevenue.length} months`);
-    } catch (err) {
-      setDistrokidStatus(`✗ Parse failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    }
-    setParsing(false);
-  }, []);
+  }, [processFile]);
 
-  const handleContinue = useCallback(async () => {
-    setParsing(true);
+  // Save all ready files to DB
+  const handleSaveAll = useCallback(async () => {
+    setSaving(true);
+    const readyFiles = fileQueue.filter((f) => f.status === 'ready');
+    let savedCount = 0;
 
-    // Auto-persist Luminate data
-    if (luminateFile) {
+    for (const file of readyFiles) {
+      setFileQueue((prev) =>
+        prev.map((f) => f.id === file.id ? { ...f, status: 'saving' as const } : f)
+      );
+
       try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(luminateFile),
-        });
-        if (res.ok) {
-          addToast('Luminate data saved successfully', 'success');
-          await fetchArtists();
+        if (file.type === 'luminate' && file.luminateData) {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(file.luminateData),
+          });
+          if (res.ok) {
+            setFileQueue((prev) =>
+              prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
+            );
+            savedCount++;
+          } else {
+            const err = await res.json();
+            throw new Error(err.error || 'Upload failed');
+          }
+        } else if (file.type === 'distrokid' && file.distrokidData) {
+          const entries = (file.distrokidData.rawEntries || []).map((e) => ({
+            saleMonth: e.saleMonth,
+            store: e.store,
+            artist: e.artist,
+            title: e.title,
+            isrc: e.isrc,
+            country: e.country,
+            quantity: e.quantity,
+            earnings: e.earnings,
+          }));
+          const res = await fetch('/api/upload/distrokid', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ entries, artistName: file.distrokidData.artistName }),
+          });
+          if (res.ok) {
+            setFileQueue((prev) =>
+              prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
+            );
+            savedCount++;
+          } else {
+            const err = await res.json();
+            throw new Error(err.error || 'Upload failed');
+          }
         }
-      } catch {
-        addToast('Luminate data loaded (local only — DB unavailable)', 'error');
+      } catch (err) {
+        setFileQueue((prev) =>
+          prev.map((f) => f.id === file.id ? { ...f, status: 'error' as const, error: err instanceof Error ? err.message : 'Save failed' } : f)
+        );
       }
     }
 
-    // Auto-persist DistroKid data
-    if (distrokidFile) {
-      try {
-        const entries = (distrokidFile.rawEntries || []).map((e) => ({
-          saleMonth: e.saleMonth,
-          store: e.store,
-          artist: e.artist,
-          title: e.title,
-          isrc: e.isrc,
-          country: e.country,
-          quantity: e.quantity,
-          earnings: e.earnings,
-        }));
-        const res = await fetch('/api/upload/distrokid', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ entries, artistName: distrokidFile.artistName }),
-        });
-        if (res.ok) {
-          addToast('DistroKid data saved successfully', 'success');
-          await fetchArtists();
-        } else {
-          addToast('DistroKid upload failed', 'error');
-        }
-      } catch {
-        addToast('DistroKid data loaded (local only)', 'error');
-      }
+    if (savedCount > 0) {
+      addToast(`${savedCount} file${savedCount > 1 ? 's' : ''} saved to database`, 'success');
+      await fetchArtists();
     }
 
-    setParsing(false);
-    setShowUpload(false);
-    setShowDashboard(true);
-  }, [luminateFile, distrokidFile, fetchArtists, addToast]);
+    setSaving(false);
+    // Close modal after a beat
+    setTimeout(() => {
+      setShowUpload(false);
+      setFileQueue([]);
+    }, 1000);
+  }, [fileQueue, fetchArtists, addToast]);
+
+  const removeFile = useCallback((id: number) => {
+    setFileQueue((prev) => prev.filter((f) => f.id !== id));
+  }, []);
 
   // Loading state
   if (status === 'loading') {
     return <div className="home-page"><div className="home-loading"><div className="spinner" /><p>Loading…</p></div></div>;
   }
 
-  // Dashboard view
-  if (showDashboard && (luminateFile || distrokidFile)) {
+  // Dashboard drill-down view
+  if (activeDashboard) {
     return (
       <Dashboard
-        data={luminateFile || undefined}
-        distrokid={distrokidFile || undefined}
-        onReset={() => {
-          setShowDashboard(false);
-          setLuminateFile(null);
-          setDistrokidFile(null);
-          setLuminateStatus(null);
-          setDistrokidStatus(null);
-        }}
+        data={activeDashboard.luminate}
+        distrokid={activeDashboard.distrokid}
+        onReset={() => setActiveDashboard(null)}
       />
     );
   }
@@ -212,7 +259,18 @@ export default function HomePage() {
     a.genre.toLowerCase().includes(search.toLowerCase())
   );
 
-  const canContinue = luminateFile || distrokidFile;
+  const readyCount = fileQueue.filter((f) => f.status === 'ready').length;
+  const allDone = fileQueue.length > 0 && fileQueue.every((f) => f.status === 'saved' || f.status === 'error');
+
+  const statusIcon = (s: QueuedFile['status']) => {
+    switch (s) {
+      case 'parsing': return '⏳';
+      case 'ready': return '✓';
+      case 'saving': return '📤';
+      case 'saved': return '✅';
+      case 'error': return '✗';
+    }
+  };
 
   return (
     <div className="home-page">
@@ -242,7 +300,7 @@ export default function HomePage() {
         <div className="home-empty">
           <div className="home-empty-icon">📊</div>
           <h3>No reports yet</h3>
-          <p>Upload Luminate or DistroKid data to get started</p>
+          <p>Upload Luminate or DistroKid files to get started — you can drop multiple files at once</p>
           <button className="btn-primary" onClick={() => setShowUpload(true)}>Upload Data</button>
         </div>
       ) : (
@@ -274,59 +332,77 @@ export default function HomePage() {
               </div>
               <div className="card-footer">
                 <span>{a.songCount} songs · {a.releaseCount} releases</span>
+                <span className="card-sources">
+                  {a.luminateUploadedAt && <span className="card-source" title={`Luminate — ${timeAgo(a.luminateUploadedAt)}`}>📊 {timeAgo(a.luminateUploadedAt)}</span>}
+                  {a.distrokidUploadedAt && <span className="card-source" title={`DistroKid — ${timeAgo(a.distrokidUploadedAt)}`}>📦 {timeAgo(a.distrokidUploadedAt)}</span>}
+                </span>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Multi-Source Upload Modal */}
+      {/* Bulk Upload Modal */}
       {showUpload && (
-        <div className="modal-overlay" onClick={() => !parsing && setShowUpload(false)}>
+        <div className="modal-overlay" onClick={() => !saving && setShowUpload(false)}>
           <div className="modal upload-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h3>Upload Data Sources</h3>
-                <p className="modal-subtitle">Add one or both — each source enriches your analysis</p>
+                <p className="modal-subtitle">Drop all your files — Luminate (.xlsx) and DistroKid (.zip). We'll handle the rest.</p>
               </div>
-              <button className="modal-close" onClick={() => !parsing && setShowUpload(false)}>✕</button>
+              <button className="modal-close" onClick={() => !saving && setShowUpload(false)}>✕</button>
             </div>
 
-            <div className="upload-sources">
-              <div
-                className={`upload-zone ${luminateFile ? 'done' : ''} ${dragOver === 'luminate' ? 'drag-over' : ''}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver('luminate'); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(null); const f = e.dataTransfer.files[0]; if (f) handleLuminateFile(f); }}
-                onClick={() => document.getElementById('luminate-input')?.click()}
-              >
-                <div className="upload-zone-icon">{luminateFile ? '✓' : '📊'}</div>
-                <div className="upload-zone-title">Luminate .xlsx</div>
-                <div className="upload-zone-desc">{luminateStatus || 'Weekly streaming data, catalog, and chart performance'}</div>
-                <input id="luminate-input" type="file" accept=".xlsx,.xls" aria-label="Upload Luminate file" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLuminateFile(f); }} />
+            {/* Drop zone */}
+            <div
+              className="upload-dropzone"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('drag-over'); }}
+              onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); }}
+              onClick={() => document.getElementById('bulk-input')?.click()}
+            >
+              <div className="upload-dropzone-icon">📁</div>
+              <div className="upload-dropzone-text">
+                Drop files here or <span className="upload-dropzone-link">browse</span>
               </div>
-
-              <div
-                className={`upload-zone ${distrokidFile ? 'done' : ''} ${dragOver === 'distrokid' ? 'drag-over' : ''}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOver('distrokid'); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={(e) => { e.preventDefault(); setDragOver(null); const f = e.dataTransfer.files[0]; if (f) handleDistroKidFile(f); }}
-                onClick={() => document.getElementById('distrokid-input')?.click()}
-              >
-                <div className="upload-zone-icon">{distrokidFile ? '✓' : '📦'}</div>
-                <div className="upload-zone-title">DistroKid .zip</div>
-                <div className="upload-zone-desc">{distrokidStatus || 'Exact revenue per stream, platform & country breakdowns'}</div>
-                <input id="distrokid-input" type="file" accept=".zip" aria-label="Upload DistroKid file" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDistroKidFile(f); }} />
-              </div>
+              <div className="upload-dropzone-hint">.xlsx (Luminate) · .zip (DistroKid) · Multiple files supported</div>
+              <input
+                id="bulk-input"
+                type="file"
+                accept=".xlsx,.xls,.zip"
+                multiple
+                aria-label="Upload files"
+                onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}
+              />
             </div>
 
-            {parsing && <div className="upload-parsing"><div className="spinner" /><span>Processing…</span></div>}
+            {/* File queue */}
+            {fileQueue.length > 0 && (
+              <div className="upload-queue">
+                {fileQueue.map((f) => (
+                  <div key={f.id} className={`upload-queue-item ${f.status}`}>
+                    <span className="queue-icon">{statusIcon(f.status)}</span>
+                    <span className="queue-name">{f.name}</span>
+                    <span className="queue-type">{f.type === 'luminate' ? 'Luminate' : 'DistroKid'}</span>
+                    {f.status === 'error' && <span className="queue-error">{f.error}</span>}
+                    {f.status !== 'saving' && f.status !== 'saved' && (
+                      <button className="queue-remove" onClick={() => removeFile(f.id)}>✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="upload-actions">
-              <button className={`btn-primary upload-continue ${canContinue ? '' : 'disabled'}`} disabled={!canContinue || parsing} onClick={handleContinue}>
-                {canContinue
-                  ? `Continue to Dashboard${luminateFile && distrokidFile ? ' (Both Sources)' : luminateFile ? ' (Luminate)' : ' (DistroKid)'} →`
-                  : 'Upload at least one data source to continue'}
+              <button
+                className={`btn-primary upload-continue ${readyCount > 0 && !saving ? '' : 'disabled'}`}
+                disabled={readyCount === 0 || saving}
+                onClick={handleSaveAll}
+              >
+                {saving ? 'Saving…' : allDone ? 'Done!' : readyCount > 0
+                  ? `Save ${readyCount} file${readyCount > 1 ? 's' : ''} to Database →`
+                  : 'Add files to continue'}
               </button>
             </div>
           </div>

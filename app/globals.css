@@ -306,6 +306,32 @@ a{color:var(--color-indigo);text-decoration:none}
 .source-dot.distrokid{background:var(--color-emerald)}
 .sidebar-brand-link{text-decoration:none;color:inherit}
 
+/* ===== BULK UPLOAD DROPZONE ===== */
+.upload-dropzone{border:2px dashed var(--border-medium);border-radius:var(--radius-md);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all var(--transition-base);margin-bottom:1rem}
+.upload-dropzone:hover,.upload-dropzone.drag-over{border-color:var(--color-indigo);background:var(--color-indigo-glow)}
+.upload-dropzone input[type="file"]{display:none}
+.upload-dropzone-icon{font-size:2rem;margin-bottom:0.5rem}
+.upload-dropzone-text{font-size:0.85rem;color:var(--text-primary);margin-bottom:0.25rem}
+.upload-dropzone-link{color:var(--color-indigo);font-weight:600;text-decoration:underline;cursor:pointer}
+.upload-dropzone-hint{font-size:0.7rem;color:var(--text-tertiary)}
+
+/* ===== FILE QUEUE ===== */
+.upload-queue{display:flex;flex-direction:column;gap:0.35rem;max-height:220px;overflow-y:auto;margin-bottom:1rem;padding-right:0.25rem}
+.upload-queue-item{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0.6rem;background:var(--bg-secondary);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);font-size:0.78rem;transition:all var(--transition-fast)}
+.upload-queue-item.saved{border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.05)}
+.upload-queue-item.error{border-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.05)}
+.upload-queue-item.saving{border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.05)}
+.queue-icon{font-size:0.85rem;flex-shrink:0;width:1.2rem;text-align:center}
+.queue-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.queue-type{font-size:0.65rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;padding:0.1rem 0.4rem;border:1px solid var(--border-subtle);border-radius:3px;flex-shrink:0}
+.queue-error{font-size:0.65rem;color:var(--color-red);flex-shrink:0}
+.queue-remove{background:none;border:none;color:var(--text-tertiary);font-size:0.7rem;cursor:pointer;padding:0 0.2rem;flex-shrink:0}
+.queue-remove:hover{color:var(--color-red)}
+
+/* ===== CARD SOURCE TIMESTAMPS ===== */
+.card-sources{display:flex;gap:0.5rem;margin-top:0.2rem}
+.card-source{font-size:0.6rem;color:var(--text-tertiary);display:flex;align-items:center;gap:0.2rem}
+
 @media(max-width:768px){.upload-sources{grid-template-columns:1fr}.country-row{grid-template-columns:28px 36px 1fr 55px}}
 
 /* ===== AUTH PAGES ===== */
