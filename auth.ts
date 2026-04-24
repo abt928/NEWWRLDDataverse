@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import Passkey from 'next-auth/providers/passkey';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
@@ -28,7 +29,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             where: { email: email.toLowerCase() },
           });
 
-          if (!user) return null;
+          if (!user || !user.passwordHash) return null;
 
           const passwordMatch = await bcrypt.compare(password, user.passwordHash);
           if (!passwordMatch) return null;
@@ -43,7 +44,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
+    Passkey,
   ],
+  experimental: { enableWebAuthn: true },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

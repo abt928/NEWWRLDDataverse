@@ -327,6 +327,13 @@ a{color:var(--color-indigo);text-decoration:none}
 .auth-error{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);color:var(--color-red);padding:0.5rem 0.75rem;border-radius:var(--radius-sm);font-size:0.8rem}
 .auth-switch{text-align:center;margin-top:1.5rem;font-size:0.8rem;color:var(--text-secondary)}
 .auth-switch a{color:var(--color-indigo);font-weight:500}
+.auth-divider{display:flex;align-items:center;gap:0.75rem;margin:1.25rem 0 0.25rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border-subtle)}
+.auth-divider span{font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.1em}
+.auth-passkey-btn{width:100%;padding:0.65rem 1rem;background:transparent;border:1px solid var(--border-medium);color:var(--text-primary);font-size:0.85rem;font-family:var(--font-sans);font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:all var(--transition-fast);display:flex;align-items:center;justify-content:center;gap:0.5rem}
+.auth-passkey-btn:hover{border-color:var(--color-indigo);background:var(--color-indigo-glow)}
+.auth-passkey-btn:disabled{opacity:0.5;cursor:not-allowed}
+.passkey-icon{font-size:1rem}
 
 /* ===== PIN BUTTONS ===== */
 .pin-btn{position:absolute;top:0.5rem;right:0.5rem;width:24px;height:24px;border:1px solid var(--border-subtle);background:transparent;color:var(--text-tertiary);font-size:0.7rem;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--transition-fast);opacity:0}

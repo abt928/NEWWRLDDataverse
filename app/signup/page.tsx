@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { signIn as passkeySignIn } from 'next-auth/webauthn';
 import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
@@ -11,6 +12,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +57,36 @@ export default function SignupPage() {
     } catch {
       setError('Something went wrong. Please try again.');
       setLoading(false);
+    }
+  };
+
+  const handlePasskeyRegister = async () => {
+    if (!email) {
+      setError('Enter your email first, then register a passkey');
+      return;
+    }
+    setError('');
+    setPasskeyLoading(true);
+    try {
+      // Create the user first (without password), then register passkey
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, passkey: true }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Account creation failed');
+        setPasskeyLoading(false);
+        return;
+      }
+
+      // Register passkey for this user
+      await passkeySignIn('passkey', { action: 'register', callbackUrl: '/' });
+    } catch (err) {
+      setError('Passkey registration failed. Try password instead.');
+      setPasskeyLoading(false);
     }
   };
 
@@ -111,6 +143,19 @@ export default function SignupPage() {
             {loading ? 'Creating account…' : 'Create Account'}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+
+        <button
+          className="auth-passkey-btn"
+          onClick={handlePasskeyRegister}
+          disabled={passkeyLoading}
+        >
+          <span className="passkey-icon">🔑</span>
+          {passkeyLoading ? 'Registering…' : 'Sign up with Passkey'}
+        </button>
 
         <p className="auth-switch">
           Already have an account? <a href="/login">Sign in</a>

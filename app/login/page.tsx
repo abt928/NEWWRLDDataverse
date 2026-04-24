@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { signIn as passkeySignIn } from 'next-auth/webauthn';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +30,17 @@ export default function LoginPage() {
     } else {
       router.push('/');
       router.refresh();
+    }
+  };
+
+  const handlePasskeySignIn = async () => {
+    setError('');
+    setPasskeyLoading(true);
+    try {
+      await passkeySignIn('passkey', { callbackUrl: '/' });
+    } catch (err) {
+      setError('Passkey sign-in failed. Try another method.');
+      setPasskeyLoading(false);
     }
   };
 
@@ -72,6 +85,19 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
+
+        <div className="auth-divider">
+          <span>or</span>
+        </div>
+
+        <button
+          className="auth-passkey-btn"
+          onClick={handlePasskeySignIn}
+          disabled={passkeyLoading}
+        >
+          <span className="passkey-icon">🔑</span>
+          {passkeyLoading ? 'Authenticating…' : 'Sign in with Passkey'}
+        </button>
 
         <p className="auth-switch">
           Don&apos;t have an account? <a href="/signup">Create one</a>

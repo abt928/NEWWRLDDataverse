@@ -4,10 +4,15 @@ import prisma from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password, name } = await req.json();
+    const { email, password, name, passkey } = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
+    }
+
+    // Password required unless passkey-only signup
+    if (!passkey && !password) {
+      return NextResponse.json({ error: 'Password is required' }, { status: 400 });
     }
 
     // Check if user already exists
@@ -16,11 +21,18 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
+      // For passkey registration, allow existing user (they'll register passkey next)
+      if (passkey) {
+        return NextResponse.json({
+          success: true,
+          user: { id: existing.id, email: existing.email, name: existing.name },
+        });
+      }
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 12);
+    // Hash password if provided
+    const passwordHash = password ? await bcrypt.hash(password, 12) : null;
 
     // Create user
     const user = await prisma.user.create({
