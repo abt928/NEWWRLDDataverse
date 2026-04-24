@@ -135,7 +135,7 @@ export default function HomePage() {
     setFileQueue((prev) => [...prev, ...newFiles]);
   }, []);
 
-  // Upload all files via FormData (raw file sent to server for parsing)
+  // Upload all files — DistroKid parsed client-side in batches, Luminate as raw file
   const handleSaveAll = useCallback(async () => {
     setSaving(true);
     const readyFiles = fileQueue.filter((f) => f.status === 'ready');
@@ -147,29 +147,68 @@ export default function HomePage() {
       );
 
       try {
-        const formData = new FormData();
-        formData.append('file', file.rawFile);
-        formData.append('type', file.type);
+        if (file.type === 'distrokid') {
+          // Client-side: unzip → parse CSVs → send entries in batches
+          const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
+          const buffer = await file.rawFile.arrayBuffer();
+          const parsed = await parseDistroKidZip(buffer);
+          const rawEntries = parsed.rawEntries || [];
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
+          // Send in batches of 500 entries
+          const BATCH_SIZE = 500;
+          let totalUpserted = 0;
+          for (let i = 0; i < rawEntries.length; i += BATCH_SIZE) {
+            const batch = rawEntries.slice(i, i + BATCH_SIZE).map((e) => ({
+              saleMonth: e.saleMonth,
+              store: e.store,
+              artist: e.artist,
+              title: e.title,
+              isrc: e.isrc,
+              country: e.country,
+              quantity: e.quantity,
+              earnings: e.earnings,
+            }));
+            const res = await fetch('/api/upload/distrokid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ entries: batch, artistName: parsed.artistName }),
+            });
+            if (res.ok) {
+              const result = await res.json();
+              totalUpserted += result.rowsProcessed || 0;
+            }
+          }
 
-        if (res.ok) {
           setFileQueue((prev) =>
             prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
           );
           savedCount++;
         } else {
-          let errMsg = 'Upload failed';
-          try {
-            const err = await res.json();
-            errMsg = err.error || errMsg;
-          } catch {
-            errMsg = `Server error (${res.status})`;
+          // Luminate: send raw file via FormData
+          const formData = new FormData();
+          formData.append('file', file.rawFile);
+          formData.append('type', 'luminate');
+
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (res.ok) {
+            setFileQueue((prev) =>
+              prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
+            );
+            savedCount++;
+          } else {
+            let errMsg = 'Upload failed';
+            try {
+              const err = await res.json();
+              errMsg = err.error || errMsg;
+            } catch {
+              errMsg = `Server error (${res.status})`;
+            }
+            throw new Error(errMsg);
           }
-          throw new Error(errMsg);
         }
       } catch (err) {
         setFileQueue((prev) =>
