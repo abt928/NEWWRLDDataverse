@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/db';
 
+export const maxDuration = 60;
+
 interface DKEntry {
   saleMonth: string;
   store: string;
