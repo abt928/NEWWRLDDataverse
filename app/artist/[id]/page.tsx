@@ -5,9 +5,17 @@ import { useParams } from 'next/navigation';
 import type { LuminateDataset, DistroKidDataset } from '@/lib/types';
 import Dashboard from '@/components/Dashboard';
 
+interface ManualRevenueEntry {
+  id: string;
+  month: string;
+  amount: number;
+  note: string;
+}
+
 interface ArtistResponse {
   luminate: LuminateDataset | null;
   distrokid: DistroKidDataset | null;
+  manualRevenue: ManualRevenueEntry[];
   luminateUploadedAt: string | null;
   distrokidUploadedAt: string | null;
 }
@@ -55,6 +63,7 @@ export default function ArtistPage() {
       artistId={params.id as string}
       luminateUploadedAt={response.luminateUploadedAt}
       distrokidUploadedAt={response.distrokidUploadedAt}
+      manualRevenue={response.manualRevenue || []}
     />
   );
 }

@@ -25,6 +25,7 @@ export async function GET(
           },
         },
         distrokidData: true,
+        manualRevenue: { orderBy: { month: 'desc' } },
       },
     });
 
@@ -231,6 +232,7 @@ export async function GET(
     return NextResponse.json({
       luminate,
       distrokid,
+      manualRevenue: artist.manualRevenue,
       luminateUploadedAt: artist.luminateUploadedAt,
       distrokidUploadedAt: artist.distrokidUploadedAt,
     });

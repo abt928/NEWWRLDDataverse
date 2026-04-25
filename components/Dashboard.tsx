@@ -13,6 +13,7 @@ import CatalogPanel from './panels/CatalogPanel';
 import GrowthPanel from './panels/GrowthPanel';
 import DealPanel from './panels/DealPanel';
 import RevenuePanel from './panels/RevenuePanel';
+import CpmPanel from './panels/CpmPanel';
 import FilterBar from './FilterBar';
 
 interface NavItem {
@@ -30,6 +31,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: 'trends', label: 'Song Trends', icon: '📉', source: 'luminate' },
   { id: 'catalog', label: 'Catalog Mix', icon: '🎯', source: 'luminate' },
   { id: 'growth', label: 'Growth Metrics', icon: '🚀', source: 'luminate' },
+  { id: 'cpm', label: 'CPM Calculator', icon: '🧮' },
   { id: 'revenue', label: 'Revenue & Platforms', icon: '💵', source: 'distrokid' },
   { id: 'deal', label: 'Deal Intelligence', icon: '💰' },
 ];
@@ -45,6 +47,13 @@ function EmptyState({ source, label }: { source: string; label: string }) {
   );
 }
 
+interface ManualRevenueEntry {
+  id: string;
+  month: string;
+  amount: number;
+  note: string;
+}
+
 interface DashboardProps {
   data?: LuminateDataset;
   distrokid?: DistroKidDataset;
@@ -52,6 +61,7 @@ interface DashboardProps {
   artistId?: string;
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
+  manualRevenue?: ManualRevenueEntry[];
 }
 
 function timeAgo(dateStr: string): string {
@@ -64,10 +74,11 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt }: DashboardProps) {
+export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [] }: DashboardProps) {
   const { data: session } = useSession();
   const hasLuminate = !!data;
   const hasDistroKid = !!distrokid;
+  const [revenueEntries, setRevenueEntries] = useState<ManualRevenueEntry[]>(initialRevenue);
 
   const navItems = ALL_NAV_ITEMS;
 
@@ -195,6 +206,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'trends' && (songs.length > 0 ? <SongTrendsPanel songs={songs} /> : <EmptyState source="Luminate (.xlsx)" label="Song Trend" />)}
         {active === 'catalog' && (catalog ? <CatalogPanel catalog={catalog} /> : <EmptyState source="Luminate (.xlsx)" label="Catalog" />)}
         {active === 'growth' && (growth && kpis ? <GrowthPanel growth={growth} kpis={kpis} /> : <EmptyState source="Luminate (.xlsx)" label="Growth" />)}
+        {active === 'cpm' && <CpmPanel artistId={artistId} entries={revenueEntries} onUpdate={setRevenueEntries} data={data} />}
         {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
       </main>

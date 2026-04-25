@@ -106,12 +106,27 @@ model Artist {
   releases            ReleaseGroup[]
   songs               Song[]
   distrokidData       DistroKidMonthly[]
+  manualRevenue       ManualRevenue[]
   pinnedMetrics       PinnedMetric[]
   shareLinks          ShareLink[]
   luminateUploadedAt  DateTime?
   distrokidUploadedAt DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
+}
+
+model ManualRevenue {
+  id        String @id @default(cuid())
+  artistId  String
+  artist    Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  month     String   // "2025-01" format
+  amount    Float
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([artistId, month])
+  @@index([artistId])
 }
 
 model ArtistWeekly {

@@ -333,6 +333,34 @@ a{color:var(--color-indigo);text-decoration:none}
 .panel-empty-state .empty-state-icon{font-size:3rem;margin-bottom:1rem;opacity:0.5}
 .panel-empty-state h3{font-size:1.25rem;font-weight:700;margin-bottom:0.5rem;color:var(--text-primary)}
 .panel-empty-state p{color:var(--text-secondary);font-size:0.9rem;max-width:350px}
+
+/* ===== CPM PANEL ===== */
+.panel-subtitle{color:var(--text-secondary);font-size:0.85rem;margin-bottom:1.5rem}
+.cpm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:2rem}
+.cpm-kpi{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem;text-align:center}
+.cpm-kpi-value{display:block;font-family:var(--font-mono);font-size:1.3rem;font-weight:700;color:var(--text-primary)}
+.cpm-kpi-label{display:block;font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-top:0.25rem}
+.cpm-form{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1.25rem;margin-bottom:1.5rem}
+.cpm-form h3{font-size:0.85rem;font-weight:600;margin-bottom:0.75rem}
+.cpm-form-row{display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap}
+.cpm-field{display:flex;flex-direction:column;gap:0.25rem}
+.cpm-field label{font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em}
+.cpm-field input{background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:8px;padding:0.5rem 0.75rem;color:var(--text-primary);font-size:0.85rem;font-family:var(--font-mono)}
+.cpm-field input:focus{border-color:var(--color-indigo);outline:none}
+.cpm-field-note{flex:1;min-width:150px}
+.cpm-save-btn{height:36px;white-space:nowrap}
+.cpm-table-wrap{overflow-x:auto}
+.cpm-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.cpm-table th{text-align:left;font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em;padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-subtle)}
+.cpm-table td{padding:0.65rem 0.75rem;border-bottom:1px solid var(--border-subtle)}
+.cpm-month{font-weight:600}
+.cpm-amount{font-family:var(--font-mono);color:var(--color-emerald)}
+.cpm-streams{font-family:var(--font-mono)}
+.cpm-cpm{font-family:var(--font-mono);font-weight:600;color:var(--color-indigo)}
+.cpm-note{color:var(--text-secondary);font-size:0.8rem}
+.cpm-delete{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;padding:0.25rem;border-radius:4px}
+.cpm-delete:hover{color:#ef4444;background:rgba(239,68,68,0.1)}
+.cpm-empty{text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.9rem}
 .sidebar-brand-link{text-decoration:none;color:inherit}
 
 /* ===== BULK UPLOAD DROPZONE ===== */
