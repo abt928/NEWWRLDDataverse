@@ -19,21 +19,31 @@ interface NavItem {
   id: string;
   label: string;
   icon: string;
-  requiresLuminate?: boolean;
-  requiresDistroKid?: boolean;
+  source?: 'luminate' | 'distrokid';
 }
 
 const ALL_NAV_ITEMS: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: '📊', requiresLuminate: true },
-  { id: 'timeline', label: 'Artist Timeline', icon: '📈', requiresLuminate: true },
-  { id: 'releases', label: 'Releases', icon: '💿', requiresLuminate: true },
-  { id: 'songs', label: 'Song Rankings', icon: '🎵', requiresLuminate: true },
-  { id: 'trends', label: 'Song Trends', icon: '📉', requiresLuminate: true },
-  { id: 'catalog', label: 'Catalog Mix', icon: '🎯', requiresLuminate: true },
-  { id: 'growth', label: 'Growth Metrics', icon: '🚀', requiresLuminate: true },
-  { id: 'revenue', label: 'Revenue & Platforms', icon: '💵', requiresDistroKid: true },
-  { id: 'deal', label: 'Deal Intelligence', icon: '💰', requiresLuminate: true },
+  { id: 'overview', label: 'Overview', icon: '📊' },
+  { id: 'timeline', label: 'Artist Timeline', icon: '📈', source: 'luminate' },
+  { id: 'releases', label: 'Releases', icon: '💿', source: 'luminate' },
+  { id: 'songs', label: 'Song Rankings', icon: '🎵', source: 'luminate' },
+  { id: 'trends', label: 'Song Trends', icon: '📉', source: 'luminate' },
+  { id: 'catalog', label: 'Catalog Mix', icon: '🎯', source: 'luminate' },
+  { id: 'growth', label: 'Growth Metrics', icon: '🚀', source: 'luminate' },
+  { id: 'revenue', label: 'Revenue & Platforms', icon: '💵', source: 'distrokid' },
+  { id: 'deal', label: 'Deal Intelligence', icon: '💰' },
 ];
+
+function EmptyState({ source, label }: { source: string; label: string }) {
+  return (
+    <div className="panel-empty-state">
+      <div className="empty-state-icon">📂</div>
+      <h3>No {label} Data Yet</h3>
+      <p>Upload a <strong>{source}</strong> file to populate this panel.</p>
+      <a href="/" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', fontSize: '0.85rem' }}>← Upload Files</a>
+    </div>
+  );
+}
 
 interface DashboardProps {
   data?: LuminateDataset;
@@ -60,11 +70,6 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const hasDistroKid = !!distrokid;
 
   const navItems = ALL_NAV_ITEMS;
-  const isDisabled = (item: NavItem) => {
-    if (item.requiresLuminate && !hasLuminate) return true;
-    if (item.requiresDistroKid && !hasDistroKid) return true;
-    return false;
-  };
 
   const defaultPanel = hasLuminate ? 'overview' : 'revenue';
   const [active, setActive] = useState(defaultPanel);
@@ -117,30 +122,22 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
             <h2>NEWWRLD <span className="auth-brand-sub">DATAVERSE</span></h2>
           </a>
           <div className="artist-name">{artistName} • {genre}</div>
-          {hasLuminate && hasDistroKid && (
-            <div className="data-sources-badge">
-              <span className="source-dot luminate" />Luminate
-              <span className="source-dot distrokid" />DistroKid
-            </div>
-          )}
+          <div className="data-sources-badge">
+            <span className={`source-dot ${hasLuminate ? 'luminate' : 'inactive'}`} />Luminate
+            <span className={`source-dot ${hasDistroKid ? 'distrokid' : 'inactive'}`} />DistroKid
+          </div>
         </div>
         <ul className="sidebar-nav">
-          {navItems.map((item) => {
-            const disabled = isDisabled(item);
-            return (
-              <li key={item.id}>
-                <button
-                  className={`${active === item.id ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-                  onClick={() => !disabled && setActive(item.id)}
-                  title={disabled ? `Requires ${item.requiresDistroKid ? 'DistroKid' : 'Luminate'} upload` : ''}
-                  style={disabled ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
-                >
-                  <span className="nav-icon">{item.icon}</span>{item.label}
-                  {disabled && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.6 }}>🔒</span>}
-                </button>
-              </li>
-            );
-          })}
+          {navItems.map((item) => (
+            <li key={item.id}>
+              <button
+                className={active === item.id ? 'active' : ''}
+                onClick={() => setActive(item.id)}
+              >
+                <span className="nav-icon">{item.icon}</span>{item.label}
+              </button>
+            </li>
+          ))}
         </ul>
 
         {artistId && (
@@ -191,15 +188,15 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
       </aside>
       <main className="main-content">
         {hasLuminate && <FilterBar filters={filters} onChange={setFilters} />}
-        {active === 'overview' && kpis && growth && <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} />}
-        {active === 'timeline' && growth && <ArtistTimelinePanel timeline={timeline} growth={growth} />}
-        {active === 'releases' && <ReleaseTablePanel releases={releases} />}
-        {active === 'songs' && <SongRankingsPanel songs={songs} />}
-        {active === 'trends' && <SongTrendsPanel songs={songs} />}
-        {active === 'catalog' && catalog && <CatalogPanel catalog={catalog} />}
-        {active === 'growth' && growth && kpis && <GrowthPanel growth={growth} kpis={kpis} />}
-        {active === 'revenue' && distrokid && <RevenuePanel data={distrokid} />}
-        {active === 'deal' && deal && kpis && <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} />}
+        {active === 'overview' && (kpis && growth ? <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} /> : <EmptyState source="Luminate (.xlsx)" label="Streaming" />)}
+        {active === 'timeline' && (growth ? <ArtistTimelinePanel timeline={timeline} growth={growth} /> : <EmptyState source="Luminate (.xlsx)" label="Timeline" />)}
+        {active === 'releases' && (releases.length > 0 ? <ReleaseTablePanel releases={releases} /> : <EmptyState source="Luminate (.xlsx)" label="Release" />)}
+        {active === 'songs' && (songs.length > 0 ? <SongRankingsPanel songs={songs} /> : <EmptyState source="Luminate (.xlsx)" label="Song" />)}
+        {active === 'trends' && (songs.length > 0 ? <SongTrendsPanel songs={songs} /> : <EmptyState source="Luminate (.xlsx)" label="Song Trend" />)}
+        {active === 'catalog' && (catalog ? <CatalogPanel catalog={catalog} /> : <EmptyState source="Luminate (.xlsx)" label="Catalog" />)}
+        {active === 'growth' && (growth && kpis ? <GrowthPanel growth={growth} kpis={kpis} /> : <EmptyState source="Luminate (.xlsx)" label="Growth" />)}
+        {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
+        {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
       </main>
     </div>
   );
