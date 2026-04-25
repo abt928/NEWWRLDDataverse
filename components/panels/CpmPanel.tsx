@@ -174,7 +174,7 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
 
   return (
     <div className="panel">
-      <h2 className="panel-title">🧮 CPM Calculator</h2>
+      <h2 className="panel-title">CPM Calculator</h2>
       <p className="panel-subtitle">Enter payouts for any months you know — the blended CPM is applied across all other months to estimate total revenue.</p>
 
       {/* Summary KPIs */}

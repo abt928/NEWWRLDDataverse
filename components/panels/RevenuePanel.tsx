@@ -85,34 +85,34 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
 
       {/* KPI Cards */}
       <div className="kpi-grid">
-        <div className="stat-card highlight">
+        <div className="stat-card highlight animate-in">
           <div className="stat-card-label">Total Earnings</div>
           <div className="stat-card-value">${data.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <div className="stat-card-sub">{data.monthlyRevenue.length} months of data</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card animate-in animate-in-delay-1">
           <div className="stat-card-label">Total Streams (All Platforms)</div>
           <div className="stat-card-value">{formatNum(data.totalStreams)}</div>
           <div className="stat-card-sub">Across {data.platformBreakdown.length} platforms</div>
         </div>
-        <div className="stat-card highlight">
+        <div className="stat-card highlight animate-in animate-in-delay-2">
           <div className="stat-card-label">Blended CPM (AM + Spotify)</div>
           <div className="stat-card-value">${blendedCpm}</div>
           <div className="stat-card-sub">${(blendedCpm / 1000).toFixed(4)}/stream • Core platforms only</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card animate-in animate-in-delay-3">
           <div className="stat-card-label">All-Platform CPM</div>
           <div className="stat-card-value">${allPlatformCpm}</div>
           <div className="stat-card-sub">Includes YouTube, TikTok, etc.</div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card animate-in animate-in-delay-4">
           <div className="stat-card-label">Avg Monthly Revenue</div>
           <div className="stat-card-value">{formatCurrency(avgMonthly)}</div>
           <div className={`stat-card-trend ${trendPct > 0 ? 'trend-up' : trendPct < 0 ? 'trend-down' : ''}`}>
             {trendPct > 0 ? '↑' : trendPct < 0 ? '↓' : '→'} {Math.abs(Math.round(trendPct))}% 3mo trend
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card animate-in">
           <div className="stat-card-label">Top Platform</div>
           <div className="stat-card-value">{topPlatform?.store ?? 'N/A'}</div>
           <div className="stat-card-sub">${topPlatform?.earnings.toLocaleString(undefined, { minimumFractionDigits: 2 })} ({topPlatform?.pct}%)</div>
@@ -120,7 +120,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
       </div>
 
       {/* Monthly Revenue Timeline */}
-      <div className="chart-card">
+      <div className="chart-card animate-in">
         <div className="chart-card-header">
           <h3>Monthly Revenue Timeline</h3>
         </div>
@@ -146,10 +146,10 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
               tickFormatter={(v: number) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`}
             />
             <Tooltip
-              contentStyle={{ background: '#111113', border: '1px solid #27272a', borderRadius: 8, fontSize: 13 }}
+              contentStyle={{ background: 'rgba(12,13,22,0.92)', WebkitBackdropFilter: 'blur(16px)', backdropFilter: 'blur(16px)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12, fontSize: 13, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               formatter={((value: any) => [`$${Number(value).toFixed(2)}`, 'Revenue']) as any}
-              labelStyle={{ color: '#707070' }}
+              labelStyle={{ color: '#8b8da3', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11, fontWeight: 600 }}
             />
             <Area type="monotone" dataKey="earnings" stroke="#34d399" strokeWidth={2} fill="url(#revenueGradient)" />
           </AreaChart>
@@ -157,7 +157,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
       </div>
 
       {/* Platform Breakdown */}
-      <div className="chart-card">
+      <div className="chart-card animate-in">
         <div className="chart-card-header">
           <h3>Platform Breakdown</h3>
         </div>
@@ -184,7 +184,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
       </div>
 
       {/* Top Earners */}
-      <div className="chart-card">
+      <div className="chart-card animate-in">
         <div className="chart-card-header">
           <h3>Top Earning Songs</h3>
           <div className="chart-card-controls">
@@ -215,7 +215,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
                   <td className="text-right mono">${s.earnings.toFixed(2)}</td>
                   <td className="text-right mono">{formatNum(s.streams)}</td>
                   <td className="text-right mono">${s.cpm}</td>
-                  <td className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{s.isrc}</td>
+                  <td className="mono isrc-col">{s.isrc}</td>
                 </tr>
               ))}
             </tbody>
@@ -224,7 +224,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
       </div>
 
       {/* Geographic Breakdown */}
-      <div className="chart-card">
+      <div className="chart-card animate-in">
         <div className="chart-card-header">
           <h3>Top Markets by Revenue</h3>
           <div className="chart-card-controls">

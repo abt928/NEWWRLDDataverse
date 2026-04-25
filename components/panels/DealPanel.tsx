@@ -1,8 +1,9 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import type { DealInsights, OverviewKPIs, FilterState, MonthlyEarning, DistroKidDataset, LuminateDataset } from '@/lib/types';
 import { formatNumber, formatCurrency, formatPct } from '@/lib/utils';
+import PinButton from '../PinButton';
 
 interface ManualRevenueEntry { id: string; month: string; amount: number; note: string }
 
@@ -62,7 +63,83 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
   const currentAnnualStreams = deal.estimatedAnnualStreams;
   const currentAnnualRevenue = activeCpm ? Math.round((currentAnnualStreams / 1000) * activeCpm) : 0;
 
-  // Generate monthly projection data
+  // --- Fan Chart: Historical + Projected ---
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const fanChartData = useMemo(() => {
+    // 1. Aggregate historical weekly data into monthly
+    const monthlyMap = new Map<string, number>();
+    if (luminateData?.artistWeekly) {
+      for (const row of luminateData.artistWeekly) {
+        const m = row.dateRange.match(/(\d{4})\/(\d{2})/);
+        if (m) {
+          const key = `${m[1]}-${m[2]}`;
+          monthlyMap.set(key, (monthlyMap.get(key) || 0) + row.quantity);
+        }
+      }
+    }
+    const historicalMonths = Array.from(monthlyMap.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .slice(-18); // Last 18 months of history
+
+    // 2. Build historical data points
+    const data: {
+      label: string; month: string; historical?: number;
+      optimistic?: number; base?: number; pessimistic?: number; severe?: number;
+      isProjected: boolean;
+    }[] = [];
+
+    for (const [month, streams] of historicalMonths) {
+      const [y, m] = month.split('-');
+      data.push({
+        label: `${MONTHS_SHORT[parseInt(m, 10) - 1]} ${y.slice(2)}`,
+        month,
+        historical: streams,
+        isProjected: false,
+      });
+    }
+
+    // 3. Build projected data points (4 scenarios)
+    if (currentAnnualStreams > 0) {
+      const now = new Date();
+      let baseStreams = currentAnnualStreams / 12;
+      const lastHistorical = historicalMonths[historicalMonths.length - 1];
+      if (lastHistorical) baseStreams = lastHistorical[1]; // Start from actual last month
+
+      const makeDecay = (annualPct: number) => Math.pow(1 - annualPct / 100, 1 / 12);
+      const decayOpt = makeDecay(Math.max(0, decayRate - 5));
+      const decayBase = makeDecay(decayRate);
+      const decayPess = makeDecay(decayRate + 10);
+      const decaySevere = makeDecay(decayRate + 20);
+
+      let sOpt = baseStreams, sBase = baseStreams, sPess = baseStreams, sSevere = baseStreams;
+
+      for (let mo = 1; mo <= projectionMonths; mo++) {
+        sOpt *= decayOpt;
+        sBase *= decayBase;
+        sPess *= decayPess;
+        sSevere *= decaySevere;
+
+        const futureDate = new Date(now.getFullYear(), now.getMonth() + mo, 1);
+        const monthKey = `${futureDate.getFullYear()}-${String(futureDate.getMonth() + 1).padStart(2, '0')}`;
+        data.push({
+          label: `${MONTHS_SHORT[futureDate.getMonth()]} ${String(futureDate.getFullYear()).slice(2)}`,
+          month: monthKey,
+          optimistic: Math.round(sOpt),
+          base: Math.round(sBase),
+          pessimistic: Math.round(sPess),
+          severe: Math.round(sSevere),
+          isProjected: true,
+        });
+      }
+    }
+
+    return data;
+  }, [luminateData, currentAnnualStreams, decayRate]);
+
+  const todayIndex = fanChartData.findIndex(d => d.isProjected);
+
+  // Generate legacy projection data for scenario table
   const projectionData = useMemo(() => {
     if (!activeCpm || currentAnnualStreams <= 0) return [];
     const monthlyDecay = Math.pow(1 - decayRate / 100, 1 / 12);
@@ -89,36 +166,19 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
   const scenarios = useMemo(() => {
     if (!activeCpm || currentAnnualStreams <= 0) return null;
     const cost = parseFloat(acquisitionCost) || 0;
-
     const runScenario = (annualDecay: number, label: string) => {
       const monthlyDecay = Math.pow(1 - annualDecay / 100, 1 / 12);
-      let cumRev = 0;
-      let streams = currentAnnualStreams / 12;
-      let breakEvenMonth = -1;
+      let cumRev = 0; let streams = currentAnnualStreams / 12; let breakEvenMonth = -1;
       const snapshotRevs: Record<number, number> = {};
-
       for (let mo = 1; mo <= projectionMonths; mo++) {
         const moRev = (streams / 1000) * activeCpm;
         cumRev += moRev;
-        if (cost > 0 && breakEvenMonth < 0 && cumRev >= cost) {
-          breakEvenMonth = mo;
-        }
-        if (snapshots.includes(mo)) {
-          snapshotRevs[mo] = Math.round(cumRev);
-        }
+        if (cost > 0 && breakEvenMonth < 0 && cumRev >= cost) breakEvenMonth = mo;
+        if (snapshots.includes(mo)) snapshotRevs[mo] = Math.round(cumRev);
         streams *= monthlyDecay;
       }
-
-      return {
-        label,
-        decay: annualDecay,
-        totalRevenue: Math.round(cumRev),
-        breakEvenMonth,
-        snapshotRevs,
-        roi: cost > 0 ? Math.round(((cumRev - cost) / cost) * 100) : 0,
-      };
+      return { label, decay: annualDecay, totalRevenue: Math.round(cumRev), breakEvenMonth, snapshotRevs, roi: cost > 0 ? Math.round(((cumRev - cost) / cost) * 100) : 0 };
     };
-
     return {
       optimistic: runScenario(Math.max(0, decayRate - 5), 'Optimistic'),
       base: runScenario(decayRate, 'Base Case'),
@@ -134,31 +194,44 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
     for (const e of earnings) map.set(e.month, e);
     const sorted = Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
     onChange({ ...filters, actualEarnings: sorted });
-    setNewMonth('');
-    setNewAmount('');
+    setNewMonth(''); setNewAmount('');
   };
-
   const removeEarning = (month: string) => {
     onChange({ ...filters, actualEarnings: filters.actualEarnings.filter((e) => e.month !== month) });
   };
 
-  const ChartTooltip = ({ active, payload, label }: any) => {
+  const FanTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     const d = payload[0]?.payload;
     return (
       <div className="cpm-chart-tooltip">
         <div className="cpm-chart-tooltip-label">{label}</div>
-        <div className="cpm-chart-tooltip-row">
-          <span className="cpm-chart-tooltip-dot" data-type="actual" />
-          <span>Revenue: {formatCurrency(d?.revenue || 0)}</span>
-        </div>
-        <div className="cpm-chart-tooltip-row">
-          <span className="cpm-chart-tooltip-dot" data-type="streams" />
-          <span>Streams: {(d?.streams || 0).toLocaleString()}</span>
-        </div>
-        <div className="cpm-chart-tooltip-row">
-          <span>Cumulative: {formatCurrency(d?.cumRevenue || 0)}</span>
-        </div>
+        {d?.historical != null && (
+          <div className="cpm-chart-tooltip-row">
+            <span className="cpm-chart-tooltip-dot" data-type="streams" />
+            <span>Streams: {d.historical.toLocaleString()}</span>
+          </div>
+        )}
+        {d?.isProjected && (
+          <>
+            <div className="cpm-chart-tooltip-row">
+              <span className="cpm-chart-tooltip-dot" data-type="actual" />
+              <span>Optimistic: {(d.optimistic || 0).toLocaleString()}</span>
+            </div>
+            <div className="cpm-chart-tooltip-row">
+              <span className="cpm-chart-tooltip-dot" data-type="streams" />
+              <span>Base: {(d.base || 0).toLocaleString()}</span>
+            </div>
+            <div className="cpm-chart-tooltip-row">
+              <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'#f59e0b',marginRight:6}} />
+              <span>Pessimistic: {(d.pessimistic || 0).toLocaleString()}</span>
+            </div>
+            <div className="cpm-chart-tooltip-row">
+              <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:'#f87171',marginRight:6}} />
+              <span>Severe: {(d.severe || 0).toLocaleString()}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -173,6 +246,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
       <div className="deal-grid">
         {/* Revenue Estimate Card */}
         <div className="deal-card accent-green">
+          <PinButton metricKey="deal.revenueEstimate" />
           <h4>Estimated Annual Revenue</h4>
           <div className="deal-value">{formatCurrency(deal.revenueEstimateLow)} – {formatCurrency(deal.revenueEstimateHigh)}</div>
           <div className="deal-sub">Based on {formatNumber(deal.estimatedAnnualStreams)} projected annual streams</div>
@@ -219,7 +293,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
       {activeCpm !== null && (
         <div className="chart-card acq-model-section">
           <div className="chart-card-header">
-            <h3>📊 Acquisition Modeling</h3>
+            <h3>Acquisition Modeling</h3>
             <span className="panel-subtitle">Powered by {cpmSource} • CPM: ${activeCpm}</span>
           </div>
 
@@ -242,29 +316,49 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
             </div>
           </div>
 
-          {/* Projection Chart */}
-          {projectionData.length > 0 && (
-            <ResponsiveContainer width="100%" height={280}>
-              <ComposedChart data={projectionData}>
-                <defs>
-                  <linearGradient id="dealRevGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="dealCumGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="month" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={2} />
-                <YAxis yAxisId="rev" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
-                <YAxis yAxisId="cum" orientation="right" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area yAxisId="rev" type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2} fill="url(#dealRevGrad)" name="Monthly Revenue" />
-                <Area yAxisId="cum" type="monotone" dataKey="cumRevenue" stroke="#6366f1" strokeWidth={2} fill="url(#dealCumGrad)" name="Cumulative" />
-              </ComposedChart>
-            </ResponsiveContainer>
+          {/* Fan Chart: Historical → Projected */}
+          {fanChartData.length > 0 && (
+            <div>
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart data={fanChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fanHistGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="fanOptGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#34d399" stopOpacity={0.15} />
+                      <stop offset="100%" stopColor="#34d399" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="fanPessGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.12} />
+                      <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="fanSevereGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f87171" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="#f87171" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <XAxis dataKey="label" tick={{ fill: '#5a5c72', fontSize: 10 }} tickLine={false} axisLine={false} interval={3} />
+                  <YAxis tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatNumber(v)} width={55} />
+                  <Tooltip content={<FanTooltip />} />
+                  {todayIndex > 0 && <ReferenceLine x={fanChartData[todayIndex]?.label} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" label={{ value: 'Today', position: 'top', fill: '#8b8da3', fontSize: 10 }} />}
+                  <Area type="monotone" dataKey="historical" stroke="#818cf8" strokeWidth={2} fill="url(#fanHistGrad)" connectNulls={false} dot={false} />
+                  <Area type="monotone" dataKey="optimistic" stroke="#34d399" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#fanOptGrad)" connectNulls={false} dot={false} />
+                  <Area type="monotone" dataKey="base" stroke="#6366f1" strokeWidth={2} strokeDasharray="6 3" fill="none" connectNulls={false} dot={false} />
+                  <Area type="monotone" dataKey="pessimistic" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#fanPessGrad)" connectNulls={false} dot={false} />
+                  <Area type="monotone" dataKey="severe" stroke="#f87171" strokeWidth={1} strokeDasharray="3 3" fill="url(#fanSevereGrad)" connectNulls={false} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+              <div className="fan-chart-legend">
+                <span className="fan-legend-item"><span className="fan-legend-line" style={{background:'#818cf8'}} />Historical</span>
+                <span className="fan-legend-item"><span className="fan-legend-line" style={{background:'#34d399'}} />Optimistic</span>
+                <span className="fan-legend-item"><span className="fan-legend-line" style={{background:'#6366f1'}} />Base</span>
+                <span className="fan-legend-item"><span className="fan-legend-line" style={{background:'#f59e0b'}} />Pessimistic</span>
+                <span className="fan-legend-item"><span className="fan-legend-line" style={{background:'#f87171'}} />Severe</span>
+              </div>
+            </div>
           )}
 
           {/* Scenario / Risk Table */}
@@ -348,7 +442,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
 
       {deal.breakoutSongs.length > 0 && (
         <div className="chart-card">
-          <div className="chart-card-header"><h3>🔥 Breakout Songs Detected</h3></div>
+          <div className="chart-card-header"><h3>Breakout Songs Detected</h3></div>
           {deal.breakoutSongs.map(s => (
             <div key={s.title} className="breakout-row">
               <span>{s.title} <span className="text-secondary">by {s.artist}</span></span>

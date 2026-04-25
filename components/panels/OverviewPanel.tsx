@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart } from 'recharts';
 import type { OverviewKPIs, GrowthMetrics, DistroKidDataset } from '@/lib/types';
 import { formatNumber, formatFullNumber, formatTrend, trendColor, formatCurrency } from '@/lib/utils';
+import PinButton from '../PinButton';
 
 function formatCompact(n: number): string {
   if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
@@ -102,21 +103,25 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
       {/* Row 1: Core streaming KPIs */}
       <div className="kpi-grid">
         <div className="stat-card highlight animate-in">
+          <PinButton metricKey="overview.allTimeStreams" />
           <div className="stat-card-label">All-Time Streams</div>
           <div className="stat-card-value">{formatNumber(kpis.totalATD)}</div>
           <div className="stat-card-sub">{formatFullNumber(kpis.totalATD)} total</div>
         </div>
         <div className="stat-card animate-in animate-in-delay-1">
+          <PinButton metricKey="overview.thisWeek" />
           <div className="stat-card-label">This Week</div>
           <div className="stat-card-value">{formatNumber(kpis.currentWeekStreams)}</div>
           <div className="stat-card-trend" data-trend={growth.wowGrowth > 0 ? 'up' : growth.wowGrowth < 0 ? 'down' : ''}>{formatTrend(growth.wowGrowth)} WoW</div>
         </div>
         <div className="stat-card animate-in animate-in-delay-2">
+          <PinButton metricKey="overview.avg12w" />
           <div className="stat-card-label">12W Average</div>
           <div className="stat-card-value">{formatNumber(kpis.trailingAvg12W)}</div>
           <div className="stat-card-sub">per week</div>
         </div>
         <div className="stat-card animate-in animate-in-delay-3">
+          <PinButton metricKey="overview.topSong" />
           <div className="stat-card-label">Top Song</div>
           <div className="stat-card-value stat-card-value-sm">{kpis.topSongTitle}</div>
           <div className="stat-card-sub">{formatNumber(kpis.topSongATD)} ATD</div>
@@ -197,7 +202,7 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
               </defs>
               <XAxis dataKey="date" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={Math.floor(timeline.length / 8)} />
               <YAxis tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatNumber(v)} width={50} />
-              <Tooltip contentStyle={{ background: '#12131a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }} formatter={(v: any) => [formatFullNumber(v), 'Streams']} labelStyle={{ color: '#8b8da3' }} />
+              <Tooltip contentStyle={{ background: 'rgba(12,13,22,0.92)', WebkitBackdropFilter: 'blur(16px)', backdropFilter: 'blur(16px)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12, fontSize: 13, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' }} formatter={(v: any) => [formatFullNumber(v), 'Streams']} labelStyle={{ color: '#8b8da3', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 11, fontWeight: 600 }} />
               <Area type="monotone" dataKey="quantity" stroke="#6366f1" strokeWidth={2} fill="url(#streamGrad)" />
             </AreaChart>
           </ResponsiveContainer>

@@ -275,8 +275,8 @@ export default function HomePage() {
   const statusIcon = (s: QueuedFile['status']) => {
     switch (s) {
       case 'ready': return '✓';
-      case 'saving': return '📤';
-      case 'saved': return '✅';
+      case 'saving': return '↑';
+      case 'saved': return '✔';
       case 'error': return '✗';
     }
   };
@@ -285,7 +285,7 @@ export default function HomePage() {
     <div className="home-page">
       <header className="home-header">
         <div className="home-brand">
-          <h1>NEWWRLD <span className="auth-brand-sub">DATAVERSE</span></h1>
+            <h1><span className="brand-shimmer">NEWWRLD</span> <span className="auth-brand-sub">DATAVERSE</span></h1>
           <p>Streaming data intelligence for artist acquisition & management</p>
         </div>
         <div className="home-actions">
@@ -307,9 +307,9 @@ export default function HomePage() {
         <div className="home-loading"><div className="spinner" /><p>Loading artists…</p></div>
       ) : filtered.length === 0 && !search ? (
         <div className="home-empty">
-          <div className="home-empty-icon">📊</div>
-          <h3>No reports yet</h3>
-          <p>Upload Luminate or DistroKid files to get started — you can drop multiple files at once</p>
+          <div className="home-empty-icon" aria-hidden="true">—</div>
+          <h3>Start Your First Analysis</h3>
+          <p>Drop Luminate or DistroKid files here to build streaming intelligence dashboards instantly</p>
           <button className="btn-primary" onClick={() => setShowUpload(true)}>Upload Data</button>
         </div>
       ) : (
@@ -342,8 +342,8 @@ export default function HomePage() {
               <div className="card-footer">
                 <span>{a.songCount} songs · {a.releaseCount} releases</span>
                 <span className="card-sources">
-                  {a.luminateUploadedAt && <span className="card-source" title={`Luminate — ${timeAgo(a.luminateUploadedAt)}`}>📊 {timeAgo(a.luminateUploadedAt)}</span>}
-                  {a.distrokidUploadedAt && <span className="card-source" title={`DistroKid — ${timeAgo(a.distrokidUploadedAt)}`}>📦 {timeAgo(a.distrokidUploadedAt)}</span>}
+                  {a.luminateUploadedAt && <span className="card-source" title={`Luminate — ${timeAgo(a.luminateUploadedAt)}`}>L {timeAgo(a.luminateUploadedAt)}</span>}
+                  {a.distrokidUploadedAt && <span className="card-source" title={`DistroKid — ${timeAgo(a.distrokidUploadedAt)}`}>D {timeAgo(a.distrokidUploadedAt)}</span>}
                 </span>
               </div>
               <button
@@ -375,7 +375,7 @@ export default function HomePage() {
               onDrop={(e) => { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); }}
               onClick={() => document.getElementById('bulk-input')?.click()}
             >
-              <div className="upload-dropzone-icon">📁</div>
+              <div className="upload-dropzone-icon" aria-hidden="true">↑</div>
               <div className="upload-dropzone-text">
                 Drop files here or <span className="upload-dropzone-link">browse</span>
               </div>

@@ -343,15 +343,22 @@ export function computeDealInsights(
         ? 'Moderate Concentration'
         : 'Diversified';
 
-  // Feature vs own
-  const primaryArtist = data.summary.reportName.toLowerCase();
+  // Feature vs own — detect from song titles
+  const primaryArtist = data.summary.reportName.toLowerCase().trim();
+
   let featureStreams = 0;
   let ownStreams = 0;
   for (const song of songs) {
-    if (song.artist.toLowerCase().includes(primaryArtist)) {
-      ownStreams += song.atd;
-    } else {
+    const titleLower = song.title.toLowerCase();
+    const featurePatterns = [
+      / \+ /,  / feat[\. ]/, / ft[\. ]/, / featuring /, / with /, / & /,
+    ];
+    const isFeature = featurePatterns.some(p => p.test(titleLower));
+    
+    if (isFeature) {
       featureStreams += song.atd;
+    } else {
+      ownStreams += song.atd;
     }
   }
   const totalS = featureStreams + ownStreams;
@@ -489,15 +496,33 @@ export function computeCatalogComposition(
     .filter((r) => r.releaseType === 'Album')
     .reduce((s, r) => s + r.atd, 0);
 
-  // Feature vs own
-  const primaryArtist = data.summary.reportName.toLowerCase();
+  // Feature vs own — detect from song titles
+  // Luminate's Artist column always shows the report's primary artist,
+  // so we parse song titles for collaboration indicators instead.
+  // Common patterns: "Artist1 + Artist2 - Song", "Song (feat. Artist2)", 
+  // "Artist1 & Artist2 - Song", "Song ft. Artist2"
+  const primaryArtist = data.summary.reportName.toLowerCase().trim();
+
   let featureATD = 0;
   let ownATD = 0;
   for (const song of songs) {
-    if (song.artist.toLowerCase().includes(primaryArtist)) {
-      ownATD += song.atd;
-    } else {
+    const titleLower = song.title.toLowerCase();
+    
+    // Check title for collaboration indicators
+    const featurePatterns = [
+      / \+ /,           // "artist1 + artist2 - song"
+      / feat[\. ]/,     // "song feat. artist" or "song feat artist"
+      / ft[\. ]/,       // "song ft. artist" or "song ft artist"  
+      / featuring /,    // "song featuring artist"
+      / with /,         // "song with artist"
+      / & /,            // "artist1 & artist2 - song"
+    ];
+    const isFeature = featurePatterns.some(p => p.test(titleLower));
+    
+    if (isFeature) {
       featureATD += song.atd;
+    } else {
+      ownATD += song.atd;
     }
   }
 

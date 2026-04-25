@@ -121,7 +121,7 @@ export default function GeoPanel({ geoBreakdown, geoSummary, activeCpm }: GeoPan
   if (!geoSummary.hasGeoData || weeklyData.length === 0) {
     return (
       <div className="panel-empty-state">
-        <div className="empty-state-icon">🌍</div>
+        <div className="empty-state-icon" aria-hidden="true">—</div>
         <h3>No Geographic Data Yet</h3>
         <p>Upload <strong>geo-specific Luminate files</strong> (US, Mexico, etc.) alongside a Worldwide file to see regional breakdowns.</p>
         <a href="/" className="btn-primary geo-empty-link">← Upload Files</a>

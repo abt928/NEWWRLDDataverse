@@ -1,8 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import type { SongAggregated } from '@/lib/types';
 import { formatNumber, formatFullNumber, getChartColor } from '@/lib/utils';
+
+const TOOLTIP_STYLE = { background: 'rgba(12,13,22,0.92)', WebkitBackdropFilter: 'blur(16px)', backdropFilter: 'blur(16px)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 12, fontSize: 13, boxShadow: '0 12px 40px rgba(0,0,0,0.6)' } as const;
+const LABEL_STYLE = { color: '#8b8da3', textTransform: 'uppercase' as const, letterSpacing: '0.06em', fontSize: 11, fontWeight: 600 };
 
 export default function SongTrendsPanel({ songs }: { songs: SongAggregated[] }) {
   const top10 = songs.slice(0, 10);
@@ -40,7 +43,7 @@ export default function SongTrendsPanel({ songs }: { songs: SongAggregated[] }) 
       </div>
 
       <div className="song-selector">
-        {top10.map((s, i) => (
+        {top10.map((s) => (
           <button key={s.luminateId} className={`song-chip ${selected.includes(s.luminateId) ? 'selected' : ''}`}
             style={selected.includes(s.luminateId) ? { '--chip-color': getChartColor(selected.indexOf(s.luminateId)) } as React.CSSProperties : {}}
             onClick={() => toggle(s.luminateId)}>
@@ -49,29 +52,29 @@ export default function SongTrendsPanel({ songs }: { songs: SongAggregated[] }) 
         ))}
       </div>
 
-      <div className="chart-card">
+      <div className="chart-card animate-in">
         <ResponsiveContainer width="100%" height={380}>
           <LineChart data={chartData}>
             <XAxis dataKey="date" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={Math.floor(sortedDates.length / 8)} />
             <YAxis tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatNumber(v)} width={50} />
-            <Tooltip contentStyle={{ background: '#12131a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }}
+            <Tooltip contentStyle={TOOLTIP_STYLE}
               formatter={(v: any, name: any) => {
                 const song = selectedSongs.find(s => s.luminateId === name);
                 return [formatFullNumber(v), song?.title ?? name];
               }}
-              labelStyle={{ color: '#8b8da3' }} />
+              labelStyle={LABEL_STYLE} />
             {selectedSongs.map((s, i) => (
               <Line key={s.luminateId} type="monotone" dataKey={s.luminateId} stroke={getChartColor(i)} strokeWidth={2} dot={false} name={s.luminateId} />
             ))}
           </LineChart>
         </ResponsiveContainer>
         {selectedSongs.length > 0 && (
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
+          <div className="chart-inline-legend">
             {selectedSongs.map((s, i) => (
-              <div key={s.luminateId} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: getChartColor(i), display: 'inline-block' }} />
+              <span key={s.luminateId} className="chart-inline-legend-item">
+                <span className="legend-dot" style={{ background: getChartColor(i) }} />
                 {s.title}
-              </div>
+              </span>
             ))}
           </div>
         )}

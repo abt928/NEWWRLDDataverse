@@ -48,7 +48,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-brand">
-          <h1>NEWWRLD</h1>
+          <h1><span className="brand-shimmer">NEWWRLD</span></h1>
           <span className="auth-brand-sub">DATAVERSE</span>
         </div>
         <p className="auth-tagline">Streaming intelligence for artist acquisition</p>
@@ -95,7 +95,7 @@ export default function LoginPage() {
           onClick={handlePasskeySignIn}
           disabled={passkeyLoading}
         >
-          <span className="passkey-icon">🔑</span>
+          <span className="passkey-icon" aria-hidden="true">⚿</span>
           {passkeyLoading ? 'Authenticating…' : 'Sign in with Passkey'}
         </button>
 

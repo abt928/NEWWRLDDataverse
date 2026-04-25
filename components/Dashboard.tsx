@@ -16,6 +16,7 @@ import RevenuePanel from './panels/RevenuePanel';
 import CpmPanel from './panels/CpmPanel';
 import FilterBar from './FilterBar';
 import GeoPanel from './panels/GeoPanel';
+import { ReportProvider, useReport, METRIC_LABELS } from './ReportContext';
 
 interface NavItem {
   id: string;
@@ -25,25 +26,25 @@ interface NavItem {
 }
 
 const ALL_NAV_ITEMS: NavItem[] = [
-  { id: 'overview', label: 'Overview', icon: '📊' },
-  { id: 'timeline', label: 'Artist Timeline', icon: '📈', source: 'luminate' },
-  { id: 'releases', label: 'Releases', icon: '💿', source: 'luminate' },
-  { id: 'songs', label: 'Song Rankings', icon: '🎵', source: 'luminate' },
-  { id: 'trends', label: 'Song Trends', icon: '📉', source: 'luminate' },
-  { id: 'catalog', label: 'Catalog Mix', icon: '🎯', source: 'luminate' },
-  { id: 'growth', label: 'Growth Metrics', icon: '🚀', source: 'luminate' },
-  { id: 'geo', label: 'Geo Data', icon: '🌍', source: 'luminate' },
-  { id: 'cpm', label: 'CPM Calculator', icon: '🧮' },
-  { id: 'revenue', label: 'Revenue & Platforms', icon: '💵', source: 'distrokid' },
-  { id: 'deal', label: 'Deal Intelligence', icon: '💰' },
+  { id: 'overview', label: 'Overview', icon: '●' },
+  { id: 'timeline', label: 'Artist Timeline', icon: '◆', source: 'luminate' },
+  { id: 'releases', label: 'Releases', icon: '◇', source: 'luminate' },
+  { id: 'songs', label: 'Song Rankings', icon: '♪', source: 'luminate' },
+  { id: 'trends', label: 'Song Trends', icon: '∿', source: 'luminate' },
+  { id: 'catalog', label: 'Catalog Mix', icon: '◎', source: 'luminate' },
+  { id: 'growth', label: 'Growth Metrics', icon: '↗', source: 'luminate' },
+  { id: 'geo', label: 'Geo Data', icon: '◉', source: 'luminate' },
+  { id: 'cpm', label: 'CPM Calculator', icon: '≡' },
+  { id: 'revenue', label: 'Revenue & Platforms', icon: '$', source: 'distrokid' },
+  { id: 'deal', label: 'Deal Intelligence', icon: '▲' },
 ];
 
 function EmptyState({ source, label }: { source: string; label: string }) {
   return (
     <div className="panel-empty-state">
-      <div className="empty-state-icon">📂</div>
+      <div className="empty-state-icon" aria-hidden="true">—</div>
       <h3>No {label} Data Yet</h3>
-      <p>Upload a <strong>{source}</strong> file to populate this panel.</p>
+      <p>Drop a <strong>{source}</strong> file on the home page to unlock this panel.</p>
       <a href="/" className="btn-primary" style={{ display: 'inline-block', marginTop: '1rem', fontSize: '0.85rem' }}>← Upload Files</a>
     </div>
   );
@@ -142,11 +143,12 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const userInitial = session?.user?.name?.charAt(0)?.toUpperCase() || session?.user?.email?.charAt(0)?.toUpperCase() || '?';
 
   return (
+    <ReportProvider>
     <div className="dashboard">
       <aside className="sidebar">
         <div className="sidebar-brand">
           <a href="/" className="sidebar-brand-link">
-            <h2>NEWWRLD <span className="auth-brand-sub">DATAVERSE</span></h2>
+            <h2><span className="brand-shimmer">NEWWRLD</span> <span className="auth-brand-sub">DATAVERSE</span></h2>
           </a>
           <div className="artist-name">{artistName} • {genre}</div>
           <div className="data-sources-badge">
@@ -154,14 +156,43 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
             <span className={`source-dot ${hasDistroKid ? 'distrokid' : 'inactive'}`} />DistroKid
           </div>
         </div>
-        <ul className="sidebar-nav">
-          {navItems.map((item) => (
-            <li key={item.id}>
+        <ul className="sidebar-nav" role="tablist" aria-label="Dashboard panels">
+          <li className="nav-section" role="presentation">Streaming</li>
+          {navItems.filter(i => ['overview','timeline','releases','songs','trends'].includes(i.id)).map((item) => (
+            <li key={item.id} role="presentation">
               <button
+                role="tab"
+                aria-selected={active === item.id ? 'true' : 'false'}
                 className={active === item.id ? 'active' : ''}
                 onClick={() => setActive(item.id)}
               >
-                <span className="nav-icon">{item.icon}</span>{item.label}
+                <span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
+              </button>
+            </li>
+          ))}
+          <li className="nav-section" role="presentation">Analysis</li>
+          {navItems.filter(i => ['catalog','growth','geo'].includes(i.id)).map((item) => (
+            <li key={item.id} role="presentation">
+              <button
+                role="tab"
+                aria-selected={active === item.id ? 'true' : 'false'}
+                className={active === item.id ? 'active' : ''}
+                onClick={() => setActive(item.id)}
+              >
+                <span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
+              </button>
+            </li>
+          ))}
+          <li className="nav-section" role="presentation">Business</li>
+          {navItems.filter(i => ['cpm','revenue','deal'].includes(i.id)).map((item) => (
+            <li key={item.id} role="presentation">
+              <button
+                role="tab"
+                aria-selected={active === item.id ? 'true' : 'false'}
+                className={active === item.id ? 'active' : ''}
+                onClick={() => setActive(item.id)}
+              >
+                <span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
               </button>
             </li>
           ))}
@@ -170,13 +201,16 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {artistId && (
           <div className="sidebar-actions">
             <button className="btn-sidebar" onClick={handleShare}>
-              {copied ? '✓ Link Copied!' : '🔗 Share Link'}
+              {copied ? '✓ Link Copied!' : 'Share Link'}
             </button>
             <button className="btn-sidebar" onClick={handleExport}>
-              📄 Export PDF
+              Export PDF
             </button>
           </div>
         )}
+
+        {/* Report Builder */}
+        <ReportSection />
 
         {/* Upload Inventory */}
         <div className="sidebar-upload-status">
@@ -201,7 +235,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
             })
           ) : (
             <div className="upload-status-item">
-              <span className="status-icon">📊</span>
+              <span className="status-icon" aria-hidden="true">•</span>
               Luminate —{' '}
               <span className="status-date">
                 {luminateUploadedAt ? timeAgo(luminateUploadedAt) : 'Not uploaded'}
@@ -238,13 +272,14 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
               <div className="sidebar-user-name">{session.user.name || 'User'}</div>
               <div className="sidebar-user-email">{session.user.email}</div>
             </div>
-            <button className="sidebar-passkey" onClick={() => passkeySignIn('passkey', { action: 'register' })} title="Register passkey">🔑</button>
+            <button className="sidebar-passkey" onClick={() => passkeySignIn('passkey', { action: 'register' })} title="Register passkey">Key</button>
             <button className="sidebar-signout" onClick={() => signOut()} title="Sign out">⏻</button>
           </div>
         )}
       </aside>
-      <main className="main-content">
+      <main className="main-content" role="tabpanel">
         {hasLuminate && <FilterBar filters={filters} onChange={setFilters} />}
+        <div className="panel-enter" key={active}>
         {active === 'overview' && (kpis && growth ? <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} /> : <EmptyState source="Luminate (.xlsx)" label="Streaming" />)}
         {active === 'timeline' && (growth ? <ArtistTimelinePanel timeline={timeline} growth={growth} /> : <EmptyState source="Luminate (.xlsx)" label="Timeline" />)}
         {active === 'releases' && (releases.length > 0 ? <ReleaseTablePanel releases={releases} /> : <EmptyState source="Luminate (.xlsx)" label="Release" />)}
@@ -256,7 +291,31 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
         {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
+        </div>
       </main>
+    </div>
+    </ReportProvider>
+  );
+}
+
+/** Sidebar report builder section */
+function ReportSection() {
+  const { pinnedKeys, togglePin, clearAll } = useReport();
+  if (pinnedKeys.length === 0) return null;
+  return (
+    <div className="report-section">
+      <div className="report-section-header">
+        <span className="report-section-title">Report <span className="report-section-count">{pinnedKeys.length}</span></span>
+        <button className="report-clear-btn" onClick={clearAll}>Clear all</button>
+      </div>
+      <div className="report-items">
+        {pinnedKeys.map(key => (
+          <div key={key} className="report-item">
+            <span className="report-item-label">{METRIC_LABELS[key] || key}</span>
+            <button className="report-item-remove" onClick={() => togglePin(key)} title="Remove">✕</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
