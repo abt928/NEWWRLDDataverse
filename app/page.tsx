@@ -147,13 +147,13 @@ export default function HomePage() {
         const data = await res.json();
         if (Array.isArray(data)) {
           setArtists(data);
-          // Auto-dedup: check for duplicate normalized names
+          // Auto-dedup: check for duplicate names (strip spaces/punctuation for comparison)
           const seen = new Set<string>();
           let hasDupes = false;
           for (const a of data) {
-            const norm = a.name?.toLowerCase().replace(/^(clone\s+)+/i, '').replace(/\s+(top\s+\d+|albums?|all\s+\d+|free\s+songs?|artist\s+report|top\s+\d+\s*songs?)$/i, '').trim();
-            if (seen.has(norm)) { hasDupes = true; break; }
-            seen.add(norm);
+            const key = (a.name || '').toLowerCase().replace(/^(clone\s+)+/gi, '').replace(/\s+(top\s+\d+|albums?|all\s+\d+|free\s+songs?|artist\s+report|top\s+\d+\s*songs?|\d+\s*year\s+look\s*back)$/gi, '').replace(/[^a-z0-9]/g, '');
+            if (seen.has(key)) { hasDupes = true; break; }
+            seen.add(key);
           }
           if (hasDupes) {
             console.log('[home] Duplicate artists detected, auto-merging...');

@@ -33,6 +33,11 @@ function normalizeArtistName(raw: string): string {
   return name.trim() || raw.trim();
 }
 
+/** Collapse to pure alphanumeric key: 'Fat Meech' → 'fatmeech' = 'FatMeech' */
+function dedupeKey(name: string): string {
+  return normalizeArtistName(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
 export async function POST() {
   try {
     const session = await auth();
@@ -57,13 +62,14 @@ export async function POST() {
       },
     });
 
-    // Group by normalized name (case-insensitive)
+    // Group by dedupeKey (strips spaces, punctuation, case)
+    // e.g. "Fat Meech" and "FatMeech" both → "fatmeech"
     const groups = new Map<string, typeof allArtists>();
     for (const artist of allArtists) {
-      const normalized = normalizeArtistName(artist.name).toLowerCase();
-      const group = groups.get(normalized) || [];
+      const key = dedupeKey(artist.name);
+      const group = groups.get(key) || [];
       group.push(artist);
-      groups.set(normalized, group);
+      groups.set(key, group);
     }
 
     const mergeLog: { name: string; merged: number; winner: string; losers: string[] }[] = [];

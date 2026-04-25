@@ -29,6 +29,15 @@ function normalizeArtistName(raw: string): string {
   return name.trim() || raw.trim();
 }
 
+/** 
+ * Collapse a name to a pure alphanumeric key for dedup comparison.
+ * "Fat Meech" → "fatmeech", "FatMeech" → "fatmeech", "SSG Marci" → "ssgmarci"
+ */
+function dedupeKey(name: string): string {
+  return normalizeArtistName(name).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -72,14 +81,15 @@ export async function POST(req: NextRequest) {
     const artistLuminateId = artistItem?.luminateId || data.artistWeekly?.[0]?.luminateId || null;
     const artistGenre = artistItem?.mainGenre || '';
 
-    console.log(`[upload] Artist name: "${rawName}" → normalized: "${artistName}"`);
+    console.log(`[upload] Artist name: "${rawName}" → normalized: "${artistName}" → key: "${dedupeKey(artistName)}"`);
 
-    // 3. Global dedup: case-insensitive name match, then luminateId
-    let artist = await prisma.artist.findFirst({
-      where: { name: { equals: artistName, mode: 'insensitive' } },
-    });
+    // 3. Global dedup: match by dedupeKey (strips spaces/punctuation/case)
+    //    This catches "Fat Meech" = "FatMeech" = "fatmeech"
+    const existingArtists = await prisma.artist.findMany();
+    const myKey = dedupeKey(artistName);
+    let artist = existingArtists.find((a) => dedupeKey(a.name) === myKey) || null;
     if (!artist && artistLuminateId) {
-      artist = await prisma.artist.findFirst({ where: { luminateId: artistLuminateId } });
+      artist = existingArtists.find((a) => a.luminateId === artistLuminateId) || null;
     }
 
     if (artist) {
@@ -276,15 +286,15 @@ export async function POST(req: NextRequest) {
 
     console.log(`[upload] ✅ Complete: ${artist.name} (${artist.id})`);
 
-    // 8. Auto-merge: find any other artists with the same normalized name and merge into this one
+    // 8. Auto-merge: find any other artists with the same dedupeKey and merge into this one
     const allWithName = await prisma.artist.findMany({
       where: {
         id: { not: artist.id },
       },
     });
-    const myNormalized = normalizeArtistName(artist.name).toLowerCase();
+    const myMergeKey = dedupeKey(artist.name);
     const duplicates = allWithName.filter(
-      (a) => normalizeArtistName(a.name).toLowerCase() === myNormalized
+      (a) => dedupeKey(a.name) === myMergeKey
     );
 
     if (duplicates.length > 0) {
