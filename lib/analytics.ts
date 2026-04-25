@@ -52,10 +52,9 @@ export function computeOverviewKPIs(data: LuminateDataset): OverviewKPIs {
   const topSong = songsByATD[0];
 
   // Peak week
-  const peakRow = sorted.reduce(
-    (best, r) => (r.quantity > best.quantity ? r : best),
-    sorted[0]
-  );
+  const peakRow = sorted.length > 0
+    ? sorted.reduce((best, r) => (r.quantity > best.quantity ? r : best), sorted[0])
+    : null;
 
   // Artist info from catalog
   const artistItem = data.catalog.find((c) => c.type === 'Artist');
