@@ -217,7 +217,7 @@ export default function HomePage() {
 
       try {
         if (file.type === 'distrokid') {
-          // Client-side: parse CSV/ZIP → send entries in batches
+          // Client-side: parse CSV/ZIP → split by solo artist → send each
           const buffer = await file.rawFile.arrayBuffer();
           let parsed;
           if (file.name.endsWith('.csv')) {
@@ -227,30 +227,35 @@ export default function HomePage() {
             const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
             parsed = await parseDistroKidZip(buffer);
           }
-          const rawEntries = parsed.rawEntries || [];
 
-          // Send in batches (larger for big CSVs)
-          const BATCH_SIZE = rawEntries.length > 10000 ? 2000 : 500;
+          // Each solo artist gets their own profile
+          const groups = parsed.artistGroups || [{ artistName: parsed.artistName, entries: parsed.rawEntries || [] }];
           let totalUpserted = 0;
-          for (let i = 0; i < rawEntries.length; i += BATCH_SIZE) {
-            const batch = rawEntries.slice(i, i + BATCH_SIZE).map((e) => ({
-              saleMonth: e.saleMonth,
-              store: e.store,
-              artist: e.artist,
-              title: e.title,
-              isrc: e.isrc,
-              country: e.country,
-              quantity: e.quantity,
-              earnings: e.earnings,
-            }));
-            const res = await fetch('/api/upload/distrokid', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ entries: batch, artistName: parsed.artistName }),
-            });
-            if (res.ok) {
-              const result = await res.json();
-              totalUpserted += result.rowsProcessed || 0;
+
+          for (const group of groups) {
+            const groupEntries = group.entries || [];
+            const BATCH_SIZE = groupEntries.length > 10000 ? 2000 : 500;
+
+            for (let i = 0; i < groupEntries.length; i += BATCH_SIZE) {
+              const batch = groupEntries.slice(i, i + BATCH_SIZE).map((e) => ({
+                saleMonth: e.saleMonth,
+                store: e.store,
+                artist: e.artist,
+                title: e.title,
+                isrc: e.isrc,
+                country: e.country,
+                quantity: e.quantity,
+                earnings: e.earnings,
+              }));
+              const res = await fetch('/api/upload/distrokid', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ entries: batch, artistName: group.artistName }),
+              });
+              if (res.ok) {
+                const result = await res.json();
+                totalUpserted += result.rowsProcessed || 0;
+              }
             }
           }
 
