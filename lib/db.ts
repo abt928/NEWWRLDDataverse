@@ -4,8 +4,7 @@ import { PrismaNeon } from '@prisma/adapter-neon';
 function makePrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    console.warn('DATABASE_URL not set — database features disabled');
-    return new PrismaClient({ adapter: undefined as any });
+    throw new Error('DATABASE_URL environment variable is required');
   }
   const adapter = new PrismaNeon({ connectionString });
   return new PrismaClient({ adapter });
