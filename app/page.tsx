@@ -190,7 +190,7 @@ export default function HomePage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const isLuminate = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
-      const isDistroKid = file.name.endsWith('.zip');
+      const isDistroKid = file.name.endsWith('.zip') || file.name.endsWith('.csv');
       if (!isLuminate && !isDistroKid) continue;
 
       newFiles.push({
@@ -217,14 +217,20 @@ export default function HomePage() {
 
       try {
         if (file.type === 'distrokid') {
-          // Client-side: unzip → parse CSVs → send entries in batches
-          const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
+          // Client-side: parse CSV/ZIP → send entries in batches
           const buffer = await file.rawFile.arrayBuffer();
-          const parsed = await parseDistroKidZip(buffer);
+          let parsed;
+          if (file.name.endsWith('.csv')) {
+            const { parseDistroKidCSV } = await import('@/lib/distrokid-parser');
+            parsed = await parseDistroKidCSV(buffer);
+          } else {
+            const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
+            parsed = await parseDistroKidZip(buffer);
+          }
           const rawEntries = parsed.rawEntries || [];
 
-          // Send in batches of 500 entries
-          const BATCH_SIZE = 500;
+          // Send in batches (larger for big CSVs)
+          const BATCH_SIZE = rawEntries.length > 10000 ? 2000 : 500;
           let totalUpserted = 0;
           for (let i = 0; i < rawEntries.length; i += BATCH_SIZE) {
             const batch = rawEntries.slice(i, i + BATCH_SIZE).map((e) => ({
@@ -454,11 +460,11 @@ export default function HomePage() {
               <div className="upload-dropzone-text">
                 Drop files here or <span className="upload-dropzone-link">browse</span>
               </div>
-              <div className="upload-dropzone-hint">.xlsx (Luminate) · .zip (DistroKid) · Multiple files supported</div>
+              <div className="upload-dropzone-hint">.xlsx (Luminate) · .zip/.csv (DistroKid) · Multiple files supported</div>
               <input
                 id="bulk-input"
                 type="file"
-                accept=".xlsx,.xls,.zip"
+                accept=".xlsx,.xls,.zip,.csv"
                 multiple
                 aria-label="Upload files"
                 onChange={(e) => { if (e.target.files) handleFiles(e.target.files); e.target.value = ''; }}

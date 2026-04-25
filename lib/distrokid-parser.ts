@@ -2,8 +2,9 @@ import JSZip from 'jszip';
 import type { DistroKidEntry, DistroKidDataset } from './types';
 
 // ============================================================
-// DistroKid ZIP Parser
-// Handles: outer .zip → inner .zip(s) → results.csv(s)
+// DistroKid Parsers
+// Handles: .zip (outer .zip → inner .zip(s) → results.csv(s))
+//          .csv (flat CSV file with same schema)
 // ============================================================
 
 export async function parseDistroKidZip(buffer: ArrayBuffer): Promise<DistroKidDataset> {
@@ -33,6 +34,19 @@ export async function parseDistroKidZip(buffer: ArrayBuffer): Promise<DistroKidD
 
   const result = aggregateEntries(allEntries);
   return { ...result, rawEntries: allEntries };
+}
+
+// ============================================================
+// Raw CSV Parser — same schema, flat file instead of nested ZIPs
+// ============================================================
+
+export async function parseDistroKidCSV(buffer: ArrayBuffer): Promise<DistroKidDataset> {
+  const decoder = new TextDecoder('utf-8');
+  const text = decoder.decode(buffer);
+  const entries = parseCSV(text);
+  console.log(`[dk-csv] Parsed ${entries.length} entries from raw CSV`);
+  const result = aggregateEntries(entries);
+  return { ...result, rawEntries: entries };
 }
 
 // ============================================================
