@@ -497,29 +497,27 @@ export default function HomePage() {
   );
 }
 
-/** Data completeness bar — segmented, gradient-filled */
+/** Data completeness bar — labeled segments so users know what each piece means */
 function DataBar({ artist }: { artist: ArtistCard }) {
   const { score, segments } = computeDataScore(artist);
-  const colors: Record<string, string> = {
-    qbr: '#6366f1',
-    trends: '#818cf8',
-    dk: '#10b981',
-    geo: '#f59e0b',
-  };
+  const abbrev: Record<string, string> = { qbr: 'QBR', trends: 'ACT', dk: 'DK', geo: 'GEO' };
 
   return (
-    <div className="data-bar-wrap" title={`${score}% data completeness`} onClick={(e) => e.stopPropagation()}>
-      <div className="data-bar-track">
+    <div className="data-bar-wrap" onClick={(e) => e.stopPropagation()}>
+      <span className="data-bar-prefix">Data</span>
+      <div className="data-bar-chips">
         {segments.map(seg => (
-          <div
+          <span
             key={seg.key}
-            className={`data-bar-segment ${seg.active ? 'active' : ''}`}
+            className={`data-bar-chip ${seg.active ? 'active' : ''}`}
             data-segment={seg.key}
-            title={`${seg.label}: ${seg.active ? '✓' : 'missing'} (${seg.weight}%)`}
-          />
+            title={`${seg.label}: ${seg.active ? 'Uploaded ✓' : 'Not yet uploaded'}`}
+          >
+            {abbrev[seg.key]}
+          </span>
         ))}
       </div>
-      <span className="data-bar-label">{score}%</span>
+      <span className={`data-bar-pct ${score === 100 ? 'complete' : ''}`}>{score}%</span>
     </div>
   );
 }
