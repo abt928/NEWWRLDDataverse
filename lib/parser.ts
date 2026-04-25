@@ -27,6 +27,22 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer, fileName?: string): L
 
   console.log(`[parser] Sheets found: ${workbook.SheetNames.join(', ')}`);
 
+  // Detect "Discography Report" format (Report Summary + Data sheets, no Summary/Items)
+  const isDiscography = workbook.SheetNames.includes('Report Summary') && workbook.SheetNames.includes('Data')
+    && !workbook.SheetNames.includes('Summary');
+  if (isDiscography) {
+    console.log(`[parser] Detected Discography Report format`);
+    return parseDiscographyReport(workbook, fileName);
+  }
+
+  // Detect "Artist Trend Report" format (Report Summary + Report Page 1 Results)
+  const isArtistTrend = workbook.SheetNames.includes('Report Summary') && workbook.SheetNames.includes('Report Page 1 Results')
+    && !workbook.SheetNames.includes('Summary');
+  if (isArtistTrend) {
+    console.log(`[parser] Detected Artist Trend Report format`);
+    return parseArtistTrendReport(workbook, fileName);
+  }
+
   // Detect "Trends"-only format (Activity Over Time export)
   const isTrendsOnly = workbook.SheetNames.includes('Trends') && !workbook.SheetNames.includes('Summary');
 
@@ -181,6 +197,225 @@ function parseTrendsOnlyWorkbook(wb: XLSX.WorkBook, fileName?: string): Luminate
     location,
     market: '',
     includedActivities: ['Streams'],
+  };
+
+  return {
+    summary,
+    catalog: [],
+    artistWeekly,
+    releaseGroupWeekly: [],
+    songWeekly: [],
+  };
+}
+
+// ============================================================
+// Discography Report Parser
+// Sheets: "Report Summary" (Artist Name, Date, Country, Metric)
+//         "Data" (song rows with TP, LP, YTD, ATD columns)
+// ============================================================
+
+function parseDiscographyReport(wb: XLSX.WorkBook, _fileName?: string): LuminateDataset {
+  // Parse Report Summary
+  const rsWs = wb.Sheets['Report Summary'];
+  const rsRows: any[][] = XLSX.utils.sheet_to_json(rsWs, { header: 1, defval: null });
+
+  const getRS = (label: string): string => {
+    const row = rsRows.find((r) => r[0]?.toString().trim() === label);
+    return row?.[1]?.toString().trim() ?? '';
+  };
+
+  const artistName = getRS('Artist Name') || 'Unknown Artist';
+  const reportDate = getRS('Date');
+  const country = getRS('Country');
+  const metric = getRS('Metric');
+
+  // Parse Data sheet
+  const dataWs = wb.Sheets['Data'];
+  const dataRows: any[][] = XLSX.utils.sheet_to_json(dataWs, { header: 1, defval: null });
+
+  // Row 0: title "Artist Discography Report - ArtistName"
+  // Row 1: headers ["enm", "TP", "% Chg", "LP", "YTD", "ATD W40 2018"]
+  // Row 2+: song data
+
+  const songWeekly: SongWeekly[] = [];
+  let totalTP = 0;
+  let totalATD = 0;
+
+  for (let i = 2; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    if (!row || !row[0]) continue;
+
+    const songTitle = String(row[0]).trim();
+    if (!songTitle) continue;
+
+    const tp = num(row[1]);     // This Period
+    const ytd = num(row[4]);    // YTD
+    const atd = num(row[5]);    // ATD
+
+    totalTP += tp;
+    totalATD += atd;
+
+    // Create a single "snapshot" week entry for each song
+    // We don't have real weekly time series, but we can record the current state
+    songWeekly.push({
+      location: country === 'G1' ? 'Worldwide' : country,
+      entity: 'Song',
+      artist: artistName,
+      title: songTitle,
+      luminateId: `disco-${songTitle.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+      activity: metric || 'Streaming On-Demand Audio',
+      week: 1,
+      year: reportDate ? parseInt(reportDate.split('/')[2]) || 2025 : 2025,
+      dateRange: reportDate || '',
+      quantity: tp,
+      ytd,
+      atd,
+    });
+  }
+
+  // Synthesize a single artist weekly entry from totals
+  const reportYear = reportDate ? parseInt(reportDate.split('/')[2]) || 2025 : 2025;
+  const artistWeekly: ArtistWeekly[] = [{
+    location: country === 'G1' ? 'Worldwide' : country,
+    entity: 'Artist',
+    artist: artistName,
+    luminateId: '',
+    activity: metric || 'Streaming On-Demand Audio',
+    week: 1,
+    year: reportYear,
+    dateRange: reportDate || '',
+    quantity: totalTP,
+    ytd: totalTP,
+    atd: totalATD,
+  }];
+
+  console.log(`[parser] Discography: ${artistName}, ${songWeekly.length} songs, ATD: ${totalATD.toLocaleString()}`);
+
+  const summary: ReportSummary = {
+    reportName: artistName,
+    reportGenerated: reportDate,
+    reportId: '',
+    timeFrame: reportDate || '',
+    location: country === 'G1' ? 'Worldwide' : country,
+    market: country,
+    includedActivities: [metric || 'Streaming On-Demand Audio'],
+  };
+
+  return {
+    summary,
+    catalog: [],
+    artistWeekly,
+    releaseGroupWeekly: [],
+    songWeekly,
+  };
+}
+
+// ============================================================
+// Artist Trend Report Parser
+// Sheets: "Report Summary" (Report Name, Entity Type, Activities)
+//         "Report Page 1 Results" (pivoted: weeks as columns)
+// Row 0: [Artist, "Baby Syko"]
+// Row 5: ["", "Week 1 2025 01/03/2025 - 01/09/2025", ...]
+// Row 7: ["Total Streaming On-Demand", 661458, 758991, ...]
+// Last 3 cols: "Period Total", "% Chg", "YTD (...)", "ATD (...)"
+// ============================================================
+
+function parseArtistTrendReport(wb: XLSX.WorkBook, _fileName?: string): LuminateDataset {
+  // Parse Report Summary
+  const rsWs = wb.Sheets['Report Summary'];
+  const rsRows: any[][] = XLSX.utils.sheet_to_json(rsWs, { header: 1, defval: null });
+
+  const getRS = (label: string): string => {
+    const row = rsRows.find((r) => r[0]?.toString().trim() === label);
+    return row?.[1]?.toString().trim() ?? '';
+  };
+
+  const reportName = getRS('Report Name');
+
+  // Parse Report Page 1 Results
+  const rWs = wb.Sheets['Report Page 1 Results'];
+  const rows: any[][] = XLSX.utils.sheet_to_json(rWs, { header: 1, defval: null });
+
+  // Row 0: ["Artist", "Baby Syko"]
+  const artistName = rows[0]?.[1]?.toString().trim() || reportName || 'Unknown Artist';
+
+  // Row 5: week headers
+  const headerRow = rows[5] || [];
+
+  // Find the week columns — they match "Week N YYYY MM/DD/YYYY - MM/DD/YYYY"
+  // Last 3-4 cols are "Period Total", "% Chg", "YTD (...)", "ATD (...)"
+  const weekCols: { col: number; week: number; year: number; dateRange: string }[] = [];
+  for (let c = 1; c < headerRow.length; c++) {
+    const h = String(headerRow[c] || '');
+    const m = h.match(/^Week\s+(\d+)\s+(\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s*-\s*(\d{2}\/\d{2}\/\d{4})$/);
+    if (m) {
+      weekCols.push({
+        col: c,
+        week: parseInt(m[1]),
+        year: parseInt(m[2]),
+        dateRange: `${m[3]} - ${m[4]}`,
+      });
+    }
+  }
+
+  // Find the "Total Streaming On-Demand" row (row 7 typically)
+  let streamRowIdx = -1;
+  for (let r = 6; r < rows.length; r++) {
+    const label = String(rows[r]?.[0] || '').trim();
+    if (label === 'Total Streaming On-Demand' || label === 'Streaming On-Demand Audio') {
+      streamRowIdx = r;
+      break;
+    }
+  }
+
+  if (streamRowIdx === -1) {
+    console.log(`[parser] Artist Trend: could not find streaming data row`);
+    return { summary: { reportName: artistName, reportGenerated: '', reportId: '', timeFrame: '', location: 'Worldwide', market: '', includedActivities: [] }, catalog: [], artistWeekly: [], releaseGroupWeekly: [], songWeekly: [] };
+  }
+
+  const streamRow = rows[streamRowIdx];
+
+  // Build weekly data
+  const weeklyData: { week: number; year: number; dateRange: string; quantity: number }[] = [];
+  for (const wc of weekCols) {
+    const quantity = num(streamRow[wc.col]);
+    weeklyData.push({ week: wc.week, year: wc.year, dateRange: wc.dateRange, quantity });
+  }
+
+  // Build artist weekly with running YTD/ATD
+  const artistWeekly: ArtistWeekly[] = [];
+  let atd = 0;
+  let ytd = 0;
+  let currentYear = weeklyData[0]?.year ?? 0;
+  for (const w of weeklyData) {
+    if (w.year !== currentYear) { ytd = 0; currentYear = w.year; }
+    atd += w.quantity;
+    ytd += w.quantity;
+    artistWeekly.push({
+      location: 'Worldwide',
+      entity: 'Artist',
+      artist: artistName,
+      luminateId: '',
+      activity: 'Streams',
+      week: w.week,
+      year: w.year,
+      dateRange: w.dateRange,
+      quantity: w.quantity,
+      ytd,
+      atd,
+    });
+  }
+
+  console.log(`[parser] Artist Trend: ${artistName}, ${artistWeekly.length} weeks, ATD: ${atd.toLocaleString()}`);
+
+  const summary: ReportSummary = {
+    reportName: artistName,
+    reportGenerated: '',
+    reportId: '',
+    timeFrame: weeklyData.length > 0 ? `W${weeklyData[0].week} ${weeklyData[0].year} – W${weeklyData[weeklyData.length-1].week} ${weeklyData[weeklyData.length-1].year}` : '',
+    location: 'Worldwide',
+    market: '',
+    includedActivities: ['Streaming On-Demand'],
   };
 
   return {

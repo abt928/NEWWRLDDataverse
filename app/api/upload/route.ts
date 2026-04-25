@@ -5,6 +5,30 @@ import { parseLuminateWorkbook } from '@/lib/parser';
 
 export const maxDuration = 60;
 
+/** Strip CLONE prefixes, report suffixes, and normalize whitespace */
+function normalizeArtistName(raw: string): string {
+  let name = raw.trim();
+  // Strip leading "CLONE " (may be doubled)
+  name = name.replace(/^(CLONE\s+)+/i, '');
+  // Strip common report-title suffixes
+  const suffixes = [
+    /\s+Artist\s+Report.*$/i,
+    /\s+Artist\s+Trend\s+Report.*$/i,
+    /\s+Top\s+\d+\s*songs?$/i,
+    /\s+Top\s+\d+$/i,
+    /\s+ALL\s+\d+$/i,
+    /\s+Albums?$/i,
+    /\s+Free\s+Songs?$/i,
+    /\s+\d+\s*year\s+look\s*back$/i,
+    /\s+Activity\s+Over\s+Time.*$/i,
+    /\s+Discography\s+Report.*$/i,
+  ];
+  for (const re of suffixes) {
+    name = name.replace(re, '');
+  }
+  return name.trim() || raw.trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
@@ -43,12 +67,17 @@ export async function POST(req: NextRequest) {
 
     // 2. Find artist info from parsed data
     const artistItem = data.catalog?.find((c) => c.type === 'Artist');
-    const artistName = artistItem?.name || data.artistWeekly?.[0]?.artist || data.summary?.reportName || 'Unknown Artist';
+    const rawName = artistItem?.name || data.artistWeekly?.[0]?.artist || data.summary?.reportName || 'Unknown Artist';
+    const artistName = normalizeArtistName(rawName);
     const artistLuminateId = artistItem?.luminateId || data.artistWeekly?.[0]?.luminateId || null;
     const artistGenre = artistItem?.mainGenre || '';
 
-    // 3. Global dedup: find by name first, then luminateId — no user scoping
-    let artist = await prisma.artist.findFirst({ where: { name: artistName } });
+    console.log(`[upload] Artist name: "${rawName}" → normalized: "${artistName}"`);
+
+    // 3. Global dedup: case-insensitive name match, then luminateId
+    let artist = await prisma.artist.findFirst({
+      where: { name: { equals: artistName, mode: 'insensitive' } },
+    });
     if (!artist && artistLuminateId) {
       artist = await prisma.artist.findFirst({ where: { luminateId: artistLuminateId } });
     }
