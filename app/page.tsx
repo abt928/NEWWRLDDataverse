@@ -22,6 +22,7 @@ interface ArtistCard {
   lastUpdated: string;
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
+  pipelineStage?: string;
 }
 
 interface QueuedFile {
@@ -96,6 +97,7 @@ export default function HomePage() {
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'success' | 'error' }[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'pipeline'>('grid');
 
   // Bulk upload queue — stores raw File objects
   const [fileQueue, setFileQueue] = useState<QueuedFile[]>([]);
@@ -290,6 +292,10 @@ export default function HomePage() {
         </div>
         <div className="home-actions">
           <button className="btn-primary" onClick={() => setShowUpload(true)}>+ Upload Data</button>
+          <div className="home-view-toggle">
+            <button className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>Grid</button>
+            <button className={`view-toggle-btn ${viewMode === 'pipeline' ? 'active' : ''}`} onClick={() => setViewMode('pipeline')}>Pipeline</button>
+          </div>
           {session?.user && (
             <button className="btn-secondary" onClick={() => signOut()} title="Sign out">
               ⏻
@@ -312,6 +318,15 @@ export default function HomePage() {
           <p>Drop Luminate or DistroKid files here to build streaming intelligence dashboards instantly</p>
           <button className="btn-primary" onClick={() => setShowUpload(true)}>Upload Data</button>
         </div>
+      ) : viewMode === 'pipeline' ? (
+        <PipelineBoard artists={filtered} onStageChange={(id, stage) => {
+          setArtists(prev => prev.map(a => a.id === id ? { ...a, pipelineStage: stage } : a));
+          fetch(`/api/artists/${id}/stage`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stage }),
+          });
+        }} />
       ) : (
         <div className="artist-grid">
           {filtered.map((a) => (
@@ -447,6 +462,106 @@ export default function HomePage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/** Pipeline / Kanban Board */
+const PIPELINE_STAGES = [
+  { id: 'research', label: 'Research', emptyText: 'Drag artists here to begin research' },
+  { id: 'review', label: 'Under Review', emptyText: 'Artists being reviewed' },
+  { id: 'negotiation', label: 'In Negotiation', emptyText: 'Active deal negotiations' },
+  { id: 'closed', label: 'Closed', emptyText: 'Completed acquisitions' },
+] as const;
+
+function PipelineBoard({ artists, onStageChange }: {
+  artists: ArtistCard[];
+  onStageChange: (artistId: string, newStage: string) => void;
+}) {
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, artistId: string) => {
+    e.dataTransfer.setData('text/plain', artistId);
+    e.dataTransfer.effectAllowed = 'move';
+    setDragId(artistId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, stageId: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverCol(stageId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCol(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, stageId: string) => {
+    e.preventDefault();
+    const artistId = e.dataTransfer.getData('text/plain');
+    if (artistId) {
+      onStageChange(artistId, stageId);
+    }
+    setDragOverCol(null);
+    setDragId(null);
+  };
+
+  return (
+    <div className="pipeline-board">
+      {PIPELINE_STAGES.map(stage => {
+        const stageArtists = artists.filter(a => (a.pipelineStage || 'research') === stage.id);
+        return (
+          <div
+            key={stage.id}
+            className={`pipeline-column ${dragOverCol === stage.id ? 'drag-over' : ''}`}
+            data-stage={stage.id}
+            onDragOver={(e) => handleDragOver(e, stage.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, stage.id)}
+          >
+            <div className="pipeline-column-header">
+              <span className="pipeline-column-title">{stage.label}</span>
+              <span className="pipeline-column-count">{stageArtists.length}</span>
+            </div>
+            <div className="pipeline-cards">
+              {stageArtists.length > 0 ? stageArtists.map(a => (
+                <div
+                  key={a.id}
+                  className={`pipeline-card ${dragId === a.id ? 'dragging' : ''}`}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, a.id)}
+                  onDragEnd={() => setDragId(null)}
+                >
+                  <div className="pipeline-card-name">{a.name}</div>
+                  <div className="pipeline-card-genre">{a.genre || 'Music'}</div>
+                  <div className="pipeline-card-stats">
+                    <div className="pipeline-card-stat">
+                      <span className="pipeline-card-stat-value">{formatNum(a.atd)}</span>
+                      <span className="pipeline-card-stat-label">ATD</span>
+                    </div>
+                    <div className="pipeline-card-stat">
+                      <span className="pipeline-card-stat-value">{formatNum(a.currentWeek)}</span>
+                      <span className="pipeline-card-stat-label">Week</span>
+                    </div>
+                    <div className="pipeline-card-stat">
+                      <span className={`pipeline-card-stat-value ${a.wowChange > 0 ? 'trend-up' : a.wowChange < 0 ? 'trend-down' : ''}`}>
+                        {a.wowChange > 0 ? '+' : ''}{a.wowChange}%
+                      </span>
+                      <span className="pipeline-card-stat-label">WoW</span>
+                    </div>
+                  </div>
+                  <a href={`/artist/${a.id}`} className="pipeline-card-click" onClick={(e) => e.stopPropagation()}>
+                    View Dashboard →
+                  </a>
+                </div>
+              )) : (
+                <div className="pipeline-empty">{stage.emptyText}</div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

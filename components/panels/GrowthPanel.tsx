@@ -15,6 +15,10 @@ export default function GrowthPanel({ growth, kpis }: { growth: GrowthMetrics; k
         <p>Velocity, trajectory, and momentum indicators</p>
       </div>
 
+      <div className="panel-summary">
+        {growth.wowGrowth > 5 ? 'Strong upward' : growth.wowGrowth > 0 ? 'Upward' : growth.wowGrowth > -5 ? 'Flat' : 'Declining'} trajectory. Trailing 12W avg is {formatNumber(growth.rollingAvg12W)}/week ({growth.wowGrowth > 0 ? '+' : ''}{Math.round(growth.wowGrowth * 10) / 10}% WoW). YTD pace projects {formatNumber(growth.ytdPace)} annual streams.
+      </div>
+
       <div className="kpi-grid">
         <div className="stat-card animate-in">
           <PinButton metricKey="growth.wow" />

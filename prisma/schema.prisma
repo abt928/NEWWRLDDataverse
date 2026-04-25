@@ -110,6 +110,7 @@ model Artist {
   uploads             ArtistUpload[]
   pinnedMetrics       PinnedMetric[]
   shareLinks          ShareLink[]
+  pipelineStage       String             @default("research")
   luminateUploadedAt  DateTime?
   distrokidUploadedAt DateTime?
   createdAt           DateTime           @default(now())

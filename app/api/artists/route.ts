@@ -61,6 +61,7 @@ export async function GET() {
         lastUpdated: mostRecent?.dateRange ?? '',
         luminateUploadedAt: artist.luminateUploadedAt,
         distrokidUploadedAt: artist.distrokidUploadedAt,
+        pipelineStage: artist.pipelineStage || 'research',
       };
     });
 

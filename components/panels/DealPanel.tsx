@@ -243,6 +243,10 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
         <p>Valuation metrics, acquisition modeling, and catalog risk assessment</p>
       </div>
 
+      <div className="panel-summary">
+        {deal.growthClassification === 'Accelerating' ? '✓ Strong upward momentum' : deal.growthClassification === 'Stable' ? '→ Stable trajectory' : '⚠ Declining trend'} — {formatCurrency(deal.revenueEstimateLow)}–{formatCurrency(deal.revenueEstimateHigh)} est. annual revenue at ${filters.cpmLow.toFixed(2)}–${filters.cpmHigh.toFixed(2)} CPM. {decayRate}% modeled decay. Top song holds {Math.round(deal.topSongShare)}% of catalog. {activeCpm !== null ? `Calibrated CPM: $${activeCpm.toFixed(2)}.` : ''}
+      </div>
+
       <div className="deal-grid">
         {/* Revenue Estimate Card */}
         <div className="deal-card accent-green">

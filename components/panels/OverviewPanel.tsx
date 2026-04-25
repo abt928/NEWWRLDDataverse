@@ -11,7 +11,31 @@ function formatCompact(n: number): string {
   return '$' + n.toFixed(0);
 }
 
-export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { kpis: OverviewKPIs; growth: GrowthMetrics; timeline: { date: string; quantity: number }[]; distrokid?: DistroKidDataset }) {
+interface UploadRecord {
+  id: string;
+  fileName: string;
+  fileType: string;
+  location: string;
+  weekCount: number;
+  songCount: number;
+  totalStreams: number;
+  uploadedAt: string;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return 'just now';
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+export default function OverviewPanel({ kpis, growth, timeline, distrokid, uploads = [], luminateUploadedAt, distrokidUploadedAt }: {
+  kpis: OverviewKPIs; growth: GrowthMetrics; timeline: { date: string; quantity: number }[]; distrokid?: DistroKidDataset;
+  uploads?: UploadRecord[]; luminateUploadedAt?: string | null; distrokidUploadedAt?: string | null;
+}) {
   // Blended CPM from DK (AM + Spotify only)
   const CORE_PLATFORMS = ['Spotify', 'Apple Music'];
   const corePlatforms = distrokid?.platformBreakdown.filter((p) => CORE_PLATFORMS.includes(p.store)) ?? [];
@@ -98,6 +122,44 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
       <div className="panel-header">
         <h2>{kpis.artistName}</h2>
         <p>{kpis.genre} • {kpis.timeFrame} • {kpis.totalSongs} songs across {kpis.totalReleases} releases</p>
+      </div>
+
+      {/* Data Inventory Bar */}
+      <div className="data-inventory">
+        {uploads.length > 0 ? uploads.map((u) => {
+          const typeLabel = u.fileType === 'luminate-trends' ? 'Activity Over Time' : u.fileType === 'distrokid' ? 'DistroKid' : 'Luminate QBR';
+          return (
+            <div key={u.id} className="inventory-item inventory-active">
+              <span className="inventory-dot active" />
+              <span className="inventory-label">{typeLabel}</span>
+              <span className="inventory-meta">{u.location} · {u.weekCount}w · {timeAgo(u.uploadedAt)}</span>
+            </div>
+          );
+        }) : (
+          <div className="inventory-item inventory-active">
+            <span className={`inventory-dot ${luminateUploadedAt ? 'active' : ''}`} />
+            <span className="inventory-label">Luminate</span>
+            <span className="inventory-meta">{luminateUploadedAt ? timeAgo(luminateUploadedAt) : 'Not uploaded'}</span>
+          </div>
+        )}
+        {distrokid ? (
+          <div className="inventory-item inventory-active">
+            <span className="inventory-dot active" />
+            <span className="inventory-label">DistroKid</span>
+            <span className="inventory-meta">{distrokid.monthlyRevenue.length} months{distrokidUploadedAt ? ` · ${timeAgo(distrokidUploadedAt)}` : ''}</span>
+          </div>
+        ) : (
+          <div className="inventory-item">
+            <span className="inventory-dot" />
+            <span className="inventory-label">DistroKid</span>
+            <span className="inventory-meta">Not uploaded</span>
+          </div>
+        )}
+      </div>
+
+      {/* Panel Summary */}
+      <div className="panel-summary">
+        {formatNumber(kpis.totalATD)} total streams with {formatNumber(kpis.currentWeekStreams)}/week, {growth.wowGrowth > 0 ? 'up' : growth.wowGrowth < 0 ? 'down' : 'flat'} {Math.abs(Math.round(growth.wowGrowth * 10) / 10)}% week-over-week. Top song: {kpis.topSongTitle || 'N/A'} ({formatNumber(kpis.topSongATD)} ATD).
       </div>
 
       {/* Row 1: Core streaming KPIs */}

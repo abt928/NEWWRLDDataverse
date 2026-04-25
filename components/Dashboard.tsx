@@ -37,6 +37,8 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: 'cpm', label: 'CPM Calculator', icon: '≡' },
   { id: 'revenue', label: 'Revenue & Platforms', icon: '$', source: 'distrokid' },
   { id: 'deal', label: 'Deal Intelligence', icon: '▲' },
+  { id: 'contracts', label: 'Contract System', icon: '⚖' },
+  { id: 'outreach', label: 'Artist Outreach', icon: '✉' },
 ];
 
 function EmptyState({ source, label }: { source: string; label: string }) {
@@ -196,6 +198,20 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
               </button>
             </li>
           ))}
+          <li className="nav-section" role="presentation">Tools</li>
+          {navItems.filter(i => ['contracts','outreach'].includes(i.id)).map((item) => (
+            <li key={item.id} role="presentation">
+              <button
+                role="tab"
+                aria-selected={active === item.id ? 'true' : 'false'}
+                className={`${active === item.id ? 'active' : ''} nav-upsell`}
+                onClick={() => setActive(item.id)}
+              >
+                <span className="nav-icon" aria-hidden="true">{item.icon}</span>{item.label}
+                <span className="nav-soon-badge">Soon</span>
+              </button>
+            </li>
+          ))}
         </ul>
 
         {artistId && (
@@ -212,53 +228,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {/* Report Builder */}
         <ReportSection />
 
-        {/* Upload Inventory */}
-        <div className="sidebar-upload-status">
-          <div className="upload-section-title">Uploaded Files</div>
-          {uploads.length > 0 ? (
-            uploads.map((u) => {
-              const geoFlag = u.location === 'Mexico' ? '🇲🇽' : u.location === 'United States' ? '🇺🇸' : u.location === 'Worldwide' ? '🌎' : '📍';
-              const typeLabel = u.fileType === 'luminate-trends' ? 'Trends' : u.fileType === 'distrokid' ? 'DK' : 'QBR';
-              return (
-                <div key={u.id} className="upload-file-row">
-                  <span className="upload-file-geo">{geoFlag}</span>
-                  <div className="upload-file-info">
-                    <div className="upload-file-name">{u.location} <span className="upload-file-type">{typeLabel}</span></div>
-                    <div className="upload-file-meta">
-                      {u.weekCount}w • {u.totalStreams > 1_000_000 ? `${(u.totalStreams / 1_000_000).toFixed(1)}M` : u.totalStreams > 1000 ? `${(u.totalStreams / 1000).toFixed(0)}K` : u.totalStreams} streams
-                      {u.songCount > 0 && ` • ${u.songCount} songs`}
-                    </div>
-                  </div>
-                  <span className="upload-file-time">{timeAgo(u.uploadedAt)}</span>
-                </div>
-              );
-            })
-          ) : (
-            <div className="upload-status-item">
-              <span className="status-icon" aria-hidden="true">•</span>
-              Luminate —{' '}
-              <span className="status-date">
-                {luminateUploadedAt ? timeAgo(luminateUploadedAt) : 'Not uploaded'}
-              </span>
-            </div>
-          )}
-          {hasDistroKid && (
-            <div className="upload-file-row">
-              <span className="upload-file-geo">📦</span>
-              <div className="upload-file-info">
-                <div className="upload-file-name">DistroKid <span className="upload-file-type">CSV</span></div>
-                <div className="upload-file-meta">{distrokid?.monthlyRevenue?.length || 0} months</div>
-              </div>
-              <span className="upload-file-time">{distrokidUploadedAt ? timeAgo(distrokidUploadedAt) : ''}</span>
-            </div>
-          )}
-          <div className="upload-formats-ref">
-            <div className="upload-formats-title">Accepted Formats</div>
-            <div className="upload-format-item"><span className="format-dot qbr" />Luminate QBR (.xlsx)</div>
-            <div className="upload-format-item"><span className="format-dot trends" />Luminate Activity Over Time (.xlsx)</div>
-            <div className="upload-format-item"><span className="format-dot dk" />DistroKid Earnings (.tsv)</div>
-          </div>
-        </div>
+
 
         <div className="sidebar-footer">
           <button onClick={onReset}>← All Artists</button>
@@ -280,7 +250,9 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
       <main className="main-content" role="tabpanel">
         {hasLuminate && <FilterBar filters={filters} onChange={setFilters} />}
         <div className="panel-enter" key={active}>
-        {active === 'overview' && (kpis && growth ? <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} /> : <EmptyState source="Luminate (.xlsx)" label="Streaming" />)}
+        {active === 'overview' && (kpis && growth ? <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} uploads={uploads} luminateUploadedAt={luminateUploadedAt} distrokidUploadedAt={distrokidUploadedAt} /> : <EmptyState source="Luminate (.xlsx)" label="Streaming" />)}
+        {active === 'contracts' && <UpsellPanel type="contracts" />}
+        {active === 'outreach' && <UpsellPanel type="outreach" />}
         {active === 'timeline' && (growth ? <ArtistTimelinePanel timeline={timeline} growth={growth} /> : <EmptyState source="Luminate (.xlsx)" label="Timeline" />)}
         {active === 'releases' && (releases.length > 0 ? <ReleaseTablePanel releases={releases} /> : <EmptyState source="Luminate (.xlsx)" label="Release" />)}
         {active === 'songs' && (songs.length > 0 ? <SongRankingsPanel songs={songs} /> : <EmptyState source="Luminate (.xlsx)" label="Song" />)}
@@ -315,6 +287,55 @@ function ReportSection() {
             <button className="report-item-remove" onClick={() => togglePin(key)} title="Remove">✕</button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/** Upsell panel for upcoming features */
+function UpsellPanel({ type }: { type: 'contracts' | 'outreach' }) {
+  const content = type === 'contracts' ? {
+    icon: '⚖',
+    title: 'Contract System',
+    subtitle: 'Know what you actually own.',
+    description: 'Your contracts are currently stored in a combination of email threads, napkin drawings, and vibes. That\'s... a choice.',
+    features: [
+      'Track master vs. publishing splits per-song',
+      'Set reversion dates and get alerts before they expire',
+      'Auto-calculate remaining obligation payouts',
+      'Store executed agreements with version history',
+    ],
+    cta: 'Coming Soon™',
+    footnote: 'We promise it\'s better than Ctrl+F\'ing your Gmail.',
+  } : {
+    icon: '✉',
+    title: 'Artist Outreach',
+    subtitle: 'Stop cold-DMing from your personal Instagram.',
+    description: 'Bold strategy, messaging artists at 2am from an account with 47 followers. Let us help you look like you\'ve done this before.',
+    features: [
+      'CRM pipeline for artist relationships',
+      'Templated offer letters with auto-populated deal terms',
+      'Track response rates and follow-up cadence',
+      'Integration with streaming data for informed outreach',
+    ],
+    cta: 'Coming Soon™',
+    footnote: '"hey bro i love ur music lets work" is not a pitch. We can fix that.',
+  };
+
+  return (
+    <div className="upsell-panel">
+      <div className="upsell-card">
+        <div className="upsell-icon">{content.icon}</div>
+        <h2 className="upsell-title">{content.title}</h2>
+        <p className="upsell-subtitle">{content.subtitle}</p>
+        <p className="upsell-description">{content.description}</p>
+        <ul className="upsell-features">
+          {content.features.map((f, i) => (
+            <li key={i}><span className="upsell-check">✓</span> {f}</li>
+          ))}
+        </ul>
+        <button className="upsell-cta" disabled>{content.cta}</button>
+        <p className="upsell-footnote">{content.footnote}</p>
       </div>
     </div>
   );
