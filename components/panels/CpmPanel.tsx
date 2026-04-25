@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { LuminateDataset } from '@/lib/types';
 
 interface ManualRevenueEntry {
@@ -210,8 +210,12 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
             <ComposedChart data={chartData}>
               <defs>
                 <linearGradient id="cpmStreamGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="cpmRevGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -219,9 +223,8 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
               <YAxis yAxisId="streams" orientation="right" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatStreams(v)} width={50} />
               <YAxis yAxisId="revenue" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar yAxisId="revenue" dataKey="actualRevenue" stackId="rev" fill="#34d399" radius={[2, 2, 0, 0]} />
-              <Bar yAxisId="revenue" dataKey="estimatedRevenue" stackId="rev" fill="rgba(52,211,153,0.3)" radius={[2, 2, 0, 0]} />
-              <Line yAxisId="streams" type="monotone" dataKey="streams" stroke="#6366f1" strokeWidth={2} dot={false} />
+              <Area yAxisId="revenue" type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2} fill="url(#cpmRevGrad)" />
+              <Area yAxisId="streams" type="monotone" dataKey="streams" stroke="#6366f1" strokeWidth={2} fill="url(#cpmStreamGrad)" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>

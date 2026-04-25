@@ -1,6 +1,6 @@
 'use client';
 import { useMemo } from 'react';
-import { ComposedChart, Area, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart } from 'recharts';
+import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart } from 'recharts';
 import type { OverviewKPIs, GrowthMetrics, DistroKidDataset } from '@/lib/types';
 import { formatNumber, formatFullNumber, formatTrend, trendColor, formatCurrency } from '@/lib/utils';
 
@@ -168,6 +168,10 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.25} />
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="ovRevGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis dataKey="label" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(mergedTimeline.length / 8))} />
@@ -175,7 +179,7 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
               <YAxis yAxisId="revenue" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
               <Tooltip content={<MergedTooltip />} />
               <Area yAxisId="streams" type="monotone" dataKey="streams" stroke="#6366f1" strokeWidth={2} fill="url(#ovStreamGrad)" />
-              <Bar yAxisId="revenue" dataKey="earnings" fill="#34d399" radius={[3, 3, 0, 0]} opacity={0.85} />
+              <Area yAxisId="revenue" type="monotone" dataKey="earnings" stroke="#34d399" strokeWidth={2} fill="url(#ovRevGrad)" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
