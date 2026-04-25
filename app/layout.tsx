@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SessionProvider } from 'next-auth/react';
 import './globals.css';
+import GlobalDropZone from '@/components/GlobalDropZone';
 
 export const metadata: Metadata = {
   title: 'NEWWRLD Dataverse — Streaming Data Intelligence',
@@ -11,7 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>
+          {children}
+          <GlobalDropZone />
+        </SessionProvider>
       </body>
     </html>
   );
