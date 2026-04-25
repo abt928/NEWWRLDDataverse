@@ -122,7 +122,7 @@ function parseTrendsOnlyWorkbook(wb: XLSX.WorkBook, fileName?: string): Luminate
 
   // Extract location from row 0: "Custom (Wed, Apr 17 - Thu, Apr 23) - Worldwide"
   const titleRow = String(rows[0]?.[0] || '');
-  const locMatch = titleRow.match(/-\s*(.+?)\s*$/);
+  const locMatch = titleRow.match(/\)\s*-\s*(.+?)\s*$/);
   const location = locMatch ? locMatch[1].trim() : 'Worldwide';
 
   // Extract Luminate ID from filename
