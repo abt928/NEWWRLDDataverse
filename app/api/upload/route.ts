@@ -20,8 +20,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    console.log(`[upload] Parsing ${file.name} (${(file.size / 1024).toFixed(0)}KB)...`);
     const buffer = await file.arrayBuffer();
     const data = parseLuminateWorkbook(buffer);
+    console.log(`[upload] Parsed: ${data.artistWeekly?.length || 0} weekly, ${data.songWeekly?.length || 0} songs, ${data.catalog?.length || 0} catalog`);
 
     // 1. Create Report
     const report = await prisma.report.create({
@@ -33,52 +35,48 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 2. Find artist
+    // 2. Find artist info from parsed data
     const artistItem = data.catalog?.find((c) => c.type === 'Artist');
     const artistName = artistItem?.name || data.artistWeekly?.[0]?.artist || data.summary?.reportName || 'Unknown Artist';
     const artistLuminateId = artistItem?.luminateId || data.artistWeekly?.[0]?.luminateId || null;
     const artistGenre = artistItem?.mainGenre || '';
 
-    // 3. Upsert Artist — always scoped to the authenticated user
-    let artist;
-    // First, try to find by name + userId (most common case)
-    const existingByName = await prisma.artist.findFirst({ where: { name: artistName, userId } });
-    if (existingByName) {
-      artist = await prisma.artist.update({
-        where: { id: existingByName.id },
+    // 3. Global dedup: find by name first, then luminateId — no user scoping
+    let artist = await prisma.artist.findFirst({ where: { name: artistName } });
+    if (!artist && artistLuminateId) {
+      artist = await prisma.artist.findFirst({ where: { luminateId: artistLuminateId } });
+    }
+
+    if (artist) {
+      console.log(`[upload] Found existing artist: ${artist.name} (${artist.id})`);
+      const updateData: any = {
+        genre: artistGenre || artist.genre,
+        reportId: report.id,
+        luminateUploadedAt: new Date(),
+      };
+      // Only set luminateId if not already set (avoid unique conflicts)
+      if (!artist.luminateId && artistLuminateId) {
+        updateData.luminateId = artistLuminateId;
+      }
+      artist = await prisma.artist.update({ where: { id: artist.id }, data: updateData });
+    } else {
+      console.log(`[upload] Creating new artist: ${artistName}`);
+      artist = await prisma.artist.create({
         data: {
-          genre: artistGenre || existingByName.genre,
-          luminateId: existingByName.luminateId || artistLuminateId || undefined,
+          name: artistName,
+          luminateId: artistLuminateId,
+          genre: artistGenre,
           reportId: report.id,
+          userId,
           luminateUploadedAt: new Date(),
         },
       });
-    } else if (artistLuminateId) {
-      // Check if this luminateId already belongs to the current user
-      const existingByLumId = await prisma.artist.findFirst({
-        where: { luminateId: artistLuminateId, userId },
-      });
-      if (existingByLumId) {
-        artist = await prisma.artist.update({
-          where: { id: existingByLumId.id },
-          data: { name: artistName, genre: artistGenre, reportId: report.id, luminateUploadedAt: new Date() },
-        });
-      } else {
-        // Create new artist for this user (even if luminateId exists for another user)
-        artist = await prisma.artist.create({
-          data: { name: artistName, genre: artistGenre, reportId: report.id, userId, luminateUploadedAt: new Date() },
-        });
-      }
-    } else {
-      artist = await prisma.artist.create({
-        data: { name: artistName, genre: artistGenre, reportId: report.id, userId, luminateUploadedAt: new Date() },
-      });
     }
 
-    // 4. Artist Weekly — delete old + bulk insert (much faster than 100 upserts)
+    // 4. Artist Weekly — delete old + bulk insert
     if (data.artistWeekly?.length) {
       await prisma.artistWeekly.deleteMany({ where: { artistId: artist.id } });
-      await prisma.artistWeekly.createMany({
+      const result = await prisma.artistWeekly.createMany({
         data: data.artistWeekly.map((row) => ({
           artistId: artist.id,
           week: Math.round(row.week),
@@ -90,22 +88,22 @@ export async function POST(req: NextRequest) {
         })),
         skipDuplicates: true,
       });
+      console.log(`[upload] Artist weekly: ${result.count} rows`);
     }
 
-    // 5. Release Groups — upsert catalog entries, then bulk insert weekly data
+    // 5. Release Groups
     const releaseMap = new Map<string, string>();
     for (const cr of (data.catalog || []).filter((c) => c.type === 'Release Group')) {
       try {
         const rg = await prisma.releaseGroup.upsert({
           where: { luminateId: cr.luminateId },
           create: { luminateId: cr.luminateId, artistId: artist.id, title: cr.name, releaseType: cr.releaseType || 'Single', releaseDate: cr.releaseDate },
-          update: { title: cr.name, releaseType: cr.releaseType || 'Single', releaseDate: cr.releaseDate },
+          update: { title: cr.name, releaseType: cr.releaseType || 'Single', releaseDate: cr.releaseDate, artistId: artist.id },
         });
         releaseMap.set(cr.luminateId, rg.id);
       } catch { /* skip */ }
     }
 
-    // Ensure all release groups from weekly data exist
     if (data.releaseGroupWeekly?.length) {
       const uniqueRGs = new Map<string, { luminateId: string; title: string; releaseType: string }>();
       for (const row of data.releaseGroupWeekly) {
@@ -118,13 +116,12 @@ export async function POST(req: NextRequest) {
           const created = await prisma.releaseGroup.upsert({
             where: { luminateId: rg.luminateId },
             create: { luminateId: rg.luminateId, artistId: artist.id, title: rg.title, releaseType: rg.releaseType },
-            update: { title: rg.title },
+            update: { title: rg.title, artistId: artist.id },
           });
           releaseMap.set(rg.luminateId, created.id);
         } catch { /* skip */ }
       }
 
-      // Delete old weekly data and bulk insert
       const rgIds = Array.from(new Set(releaseMap.values()));
       if (rgIds.length > 0) {
         await prisma.releaseGroupWeekly.deleteMany({ where: { releaseGroupId: { in: rgIds } } });
@@ -143,24 +140,24 @@ export async function POST(req: NextRequest) {
         }));
 
       if (rgWeeklyData.length > 0) {
-        await prisma.releaseGroupWeekly.createMany({ data: rgWeeklyData, skipDuplicates: true });
+        const result = await prisma.releaseGroupWeekly.createMany({ data: rgWeeklyData, skipDuplicates: true });
+        console.log(`[upload] Release weekly: ${result.count} rows`);
       }
     }
 
-    // 6. Songs — upsert catalog entries, then bulk insert weekly data
+    // 6. Songs
     const songMap = new Map<string, string>();
     for (const cs of (data.catalog || []).filter((c) => c.type === 'Song')) {
       try {
         const song = await prisma.song.upsert({
           where: { luminateId: cs.luminateId },
           create: { luminateId: cs.luminateId, artistId: artist.id, title: cs.name },
-          update: { title: cs.name },
+          update: { title: cs.name, artistId: artist.id },
         });
         songMap.set(cs.luminateId, song.id);
       } catch { /* skip */ }
     }
 
-    // Ensure all songs from weekly data exist
     if (data.songWeekly?.length) {
       const uniqueSongs = new Map<string, { luminateId: string; title: string }>();
       for (const row of data.songWeekly) {
@@ -173,13 +170,12 @@ export async function POST(req: NextRequest) {
           const created = await prisma.song.upsert({
             where: { luminateId: s.luminateId },
             create: { luminateId: s.luminateId, artistId: artist.id, title: s.title },
-            update: { title: s.title },
+            update: { title: s.title, artistId: artist.id },
           });
           songMap.set(s.luminateId, created.id);
         } catch { /* skip */ }
       }
 
-      // Delete old weekly data and bulk insert
       const songIds = Array.from(new Set(songMap.values()));
       if (songIds.length > 0) {
         await prisma.songWeekly.deleteMany({ where: { songId: { in: songIds } } });
@@ -198,15 +194,17 @@ export async function POST(req: NextRequest) {
         }));
 
       if (songWeeklyData.length > 0) {
-        // Batch in chunks of 5000 for Prisma limits
         for (let i = 0; i < songWeeklyData.length; i += 5000) {
-          await prisma.songWeekly.createMany({
+          const result = await prisma.songWeekly.createMany({
             data: songWeeklyData.slice(i, i + 5000),
             skipDuplicates: true,
           });
+          console.log(`[upload] Song weekly batch ${Math.floor(i/5000)+1}: ${result.count} rows`);
         }
       }
     }
+
+    console.log(`[upload] ✅ Complete: ${artist.name} (${artist.id})`);
 
     return NextResponse.json({
       success: true,
@@ -220,7 +218,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('[upload] ❌ FAILED:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload failed' },
       { status: 500 }

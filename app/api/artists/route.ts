@@ -9,8 +9,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Return ALL artists (shared across users — deduplication by name/luminateId)
     const artists = await prisma.artist.findMany({
-      where: { userId: session.user.id },
       include: {
         weekly: {
           orderBy: [{ year: 'desc' }, { week: 'desc' }],

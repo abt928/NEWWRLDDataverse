@@ -29,23 +29,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No entries provided' }, { status: 400 });
     }
 
-    // Find or create artist for this user
+    console.log(`[dk-upload] ${entries.length} entries for "${artistName}"`);
+
+    // Global dedup: find by name (shared across users)
     let artist = await prisma.artist.findFirst({
-      where: { userId, name: artistName },
+      where: { name: artistName },
     });
 
     if (!artist) {
       artist = await prisma.artist.create({
         data: { name: artistName, userId, distrokidUploadedAt: new Date() },
       });
+      console.log(`[dk-upload] Created new artist: ${artist.id}`);
     } else {
       artist = await prisma.artist.update({
         where: { id: artist.id },
         data: { distrokidUploadedAt: new Date() },
       });
+      console.log(`[dk-upload] Updated existing artist: ${artist.id}`);
     }
 
-    // Bulk insert with skipDuplicates for speed (much faster than individual upserts)
+    // Bulk insert with skipDuplicates
     const createData = entries.map((e) => ({
       artistId: artist!.id,
       saleMonth: e.saleMonth || '',
@@ -62,6 +66,8 @@ export async function POST(req: NextRequest) {
       skipDuplicates: true,
     });
 
+    console.log(`[dk-upload] ✅ ${result.count} rows inserted`);
+
     return NextResponse.json({
       success: true,
       artistId: artist.id,
@@ -69,7 +75,7 @@ export async function POST(req: NextRequest) {
       rowsProcessed: result.count,
     });
   } catch (error) {
-    console.error('DistroKid upload error:', error);
+    console.error('[dk-upload] ❌ FAILED:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Upload failed' },
       { status: 500 }
