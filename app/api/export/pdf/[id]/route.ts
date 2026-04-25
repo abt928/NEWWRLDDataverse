@@ -45,7 +45,12 @@ export async function GET(
   try {
     const { id } = await params;
     const data = await getArtistDataset(id);
-    if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!data) return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
+    if (!data.artistWeekly?.length) {
+      return new NextResponse(`No streaming data available for export. Upload a Luminate report first.`, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
 
     const kpis = computeOverviewKPIs(data);
     const growth = computeGrowthMetrics(data);

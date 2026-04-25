@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import type { LuminateDataset, CatalogItem, ArtistWeekly, ReleaseGroupWeekly, SongWeekly } from '@/lib/types';
+import type { LuminateDataset, CatalogItem, ArtistWeekly, ReleaseGroupWeekly, SongWeekly, DistroKidDataset } from '@/lib/types';
 
 export async function GET(
   req: NextRequest,
@@ -24,6 +24,7 @@ export async function GET(
             weekly: { orderBy: [{ year: 'asc' }, { week: 'asc' }] },
           },
         },
+        distrokidData: true,
       },
     });
 
@@ -31,7 +32,9 @@ export async function GET(
       return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
     }
 
-    // Reconstruct LuminateDataset from DB data for the existing analytics engine
+    // Build Luminate dataset (if weekly data exists)
+    const hasLuminate = artist.weekly.length > 0;
+
     const catalog: CatalogItem[] = [
       {
         type: 'Artist',
@@ -111,7 +114,7 @@ export async function GET(
       }))
     );
 
-    const dataset: LuminateDataset = {
+    const luminate: LuminateDataset | null = hasLuminate ? {
       summary: {
         reportName: artist.name,
         reportGenerated: '',
@@ -125,9 +128,112 @@ export async function GET(
       artistWeekly,
       releaseGroupWeekly,
       songWeekly,
-    };
+    } : null;
 
-    return NextResponse.json(dataset);
+    // Build DistroKid dataset (if dk data exists)
+    const hasDistroKid = artist.distrokidData.length > 0;
+    let distrokid: DistroKidDataset | null = null;
+
+    if (hasDistroKid) {
+      const dkEntries = artist.distrokidData;
+
+      // Aggregate by month
+      const monthMap = new Map<string, { earnings: number; streams: number }>();
+      const storeMap = new Map<string, { earnings: number; streams: number }>();
+      const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number }>();
+      const countryMap = new Map<string, { earnings: number; streams: number }>();
+
+      let totalEarnings = 0;
+      let totalStreams = 0;
+      let minMonth = 'zzzz';
+      let maxMonth = '';
+
+      for (const e of dkEntries) {
+        totalEarnings += e.earnings;
+        totalStreams += e.quantity;
+        if (e.saleMonth < minMonth) minMonth = e.saleMonth;
+        if (e.saleMonth > maxMonth) maxMonth = e.saleMonth;
+
+        // Monthly
+        const m = monthMap.get(e.saleMonth) || { earnings: 0, streams: 0 };
+        m.earnings += e.earnings;
+        m.streams += e.quantity;
+        monthMap.set(e.saleMonth, m);
+
+        // Platform
+        const st = storeMap.get(e.store) || { earnings: 0, streams: 0 };
+        st.earnings += e.earnings;
+        st.streams += e.quantity;
+        storeMap.set(e.store, st);
+
+        // Song
+        const key = e.isrc || e.title;
+        const sg = songMap.get(key) || { title: e.title, artist: artist.name, isrc: e.isrc, earnings: 0, streams: 0 };
+        sg.earnings += e.earnings;
+        sg.streams += e.quantity;
+        songMap.set(key, sg);
+
+        // Country
+        const c = countryMap.get(e.country) || { earnings: 0, streams: 0 };
+        c.earnings += e.earnings;
+        c.streams += e.quantity;
+        countryMap.set(e.country, c);
+      }
+
+      const monthlyRevenue = Array.from(monthMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, d]) => ({
+          month,
+          earnings: Math.round(d.earnings * 100) / 100,
+          streams: d.streams,
+          effectiveCpm: d.streams > 0 ? Math.round((d.earnings / d.streams) * 1000 * 100) / 100 : 0,
+        }));
+
+      const platformBreakdown = Array.from(storeMap.entries())
+        .sort(([, a], [, b]) => b.earnings - a.earnings)
+        .map(([store, d]) => ({
+          store,
+          earnings: Math.round(d.earnings * 100) / 100,
+          streams: d.streams,
+          cpm: d.streams > 0 ? Math.round((d.earnings / d.streams) * 1000 * 100) / 100 : 0,
+          pct: totalEarnings > 0 ? Math.round((d.earnings / totalEarnings) * 1000) / 10 : 0,
+        }));
+
+      const songEarnings = Array.from(songMap.values())
+        .sort((a, b) => b.earnings - a.earnings)
+        .slice(0, 100)
+        .map((s) => ({
+          ...s,
+          earnings: Math.round(s.earnings * 100) / 100,
+          cpm: s.streams > 0 ? Math.round((s.earnings / s.streams) * 1000 * 100) / 100 : 0,
+        }));
+
+      const countryBreakdown = Array.from(countryMap.entries())
+        .sort(([, a], [, b]) => b.earnings - a.earnings)
+        .map(([country, d]) => ({
+          country,
+          earnings: Math.round(d.earnings * 100) / 100,
+          streams: d.streams,
+        }));
+
+      distrokid = {
+        totalEarnings: Math.round(totalEarnings * 100) / 100,
+        totalStreams,
+        dateRange: [minMonth, maxMonth],
+        artistName: artist.name,
+        monthlyRevenue,
+        platformBreakdown,
+        songEarnings,
+        countryBreakdown,
+      };
+    }
+
+    return NextResponse.json({
+      luminate,
+      distrokid,
+      luminateUploadedAt: artist.luminateUploadedAt,
+      distrokidUploadedAt: artist.distrokidUploadedAt,
+    });
   } catch (error) {
     console.error('Artist detail error:', error);
     return NextResponse.json({ error: 'Failed to load artist' }, { status: 500 });

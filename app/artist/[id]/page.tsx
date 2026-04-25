@@ -2,12 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import type { LuminateDataset } from '@/lib/types';
+import type { LuminateDataset, DistroKidDataset } from '@/lib/types';
 import Dashboard from '@/components/Dashboard';
+
+interface ArtistResponse {
+  luminate: LuminateDataset | null;
+  distrokid: DistroKidDataset | null;
+  luminateUploadedAt: string | null;
+  distrokidUploadedAt: string | null;
+}
 
 export default function ArtistPage() {
   const params = useParams();
-  const [data, setData] = useState<LuminateDataset | null>(null);
+  const [response, setResponse] = useState<ArtistResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -15,8 +22,8 @@ export default function ArtistPage() {
       try {
         const res = await fetch(`/api/artists/${params.id}`);
         if (!res.ok) throw new Error('Artist not found');
-        const dataset: LuminateDataset = await res.json();
-        setData(dataset);
+        const data: ArtistResponse = await res.json();
+        setResponse(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load');
       }
@@ -34,11 +41,20 @@ export default function ArtistPage() {
     </div>
   );
 
-  if (!data) return (
+  if (!response) return (
     <div className="home-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
       <div className="home-loading"><div className="spinner" /><p>Loading dashboard…</p></div>
     </div>
   );
 
-  return <Dashboard data={data} onReset={() => window.location.href = '/'} artistId={params.id as string} />;
+  return (
+    <Dashboard
+      data={response.luminate || undefined}
+      distrokid={response.distrokid || undefined}
+      onReset={() => window.location.href = '/'}
+      artistId={params.id as string}
+      luminateUploadedAt={response.luminateUploadedAt}
+      distrokidUploadedAt={response.distrokidUploadedAt}
+    />
+  );
 }

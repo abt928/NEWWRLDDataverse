@@ -59,11 +59,12 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const hasLuminate = !!data;
   const hasDistroKid = !!distrokid;
 
-  const navItems = useMemo(() => ALL_NAV_ITEMS.filter((item) => {
-    if (item.requiresLuminate && !hasLuminate) return false;
-    if (item.requiresDistroKid && !hasDistroKid) return false;
-    return true;
-  }), [hasLuminate, hasDistroKid]);
+  const navItems = ALL_NAV_ITEMS;
+  const isDisabled = (item: NavItem) => {
+    if (item.requiresLuminate && !hasLuminate) return true;
+    if (item.requiresDistroKid && !hasDistroKid) return true;
+    return false;
+  };
 
   const defaultPanel = hasLuminate ? 'overview' : 'revenue';
   const [active, setActive] = useState(defaultPanel);
@@ -78,31 +79,26 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const catalog = useMemo(() => data ? computeCatalogComposition(data, filters) : null, [data, filters]);
   const timeline = useMemo(() => data ? computeArtistTimeline(data) : [], [data]);
 
-  const shareUrl = artistId ? `${window.location.origin}/share/${artistId}` : null;
+  const shareUrl = artistId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/artist/${artistId}` : null;
 
   const handleShare = useCallback(async () => {
-    if (!artistId) return;
+    if (!shareUrl) return;
     try {
-      const res = await fetch('/api/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ artistId }),
-      });
-      const data = await res.json();
-      if (data.url) {
-        await navigator.clipboard.writeText(data.url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback to simple URL copy
-      if (shareUrl) {
-        navigator.clipboard.writeText(shareUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      // Fallback
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }, [artistId, shareUrl]);
+  }, [shareUrl]);
 
   const handleExport = useCallback(async () => {
     if (!artistId) return;
@@ -129,13 +125,22 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
           )}
         </div>
         <ul className="sidebar-nav">
-          {navItems.map((item) => (
-            <li key={item.id}>
-              <button className={active === item.id ? 'active' : ''} onClick={() => setActive(item.id)}>
-                <span className="nav-icon">{item.icon}</span>{item.label}
-              </button>
-            </li>
-          ))}
+          {navItems.map((item) => {
+            const disabled = isDisabled(item);
+            return (
+              <li key={item.id}>
+                <button
+                  className={`${active === item.id ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
+                  onClick={() => !disabled && setActive(item.id)}
+                  title={disabled ? `Requires ${item.requiresDistroKid ? 'DistroKid' : 'Luminate'} upload` : ''}
+                  style={disabled ? { opacity: 0.35, cursor: 'not-allowed' } : {}}
+                >
+                  <span className="nav-icon">{item.icon}</span>{item.label}
+                  {disabled && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', opacity: 0.6 }}>🔒</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
 
         {artistId && (
