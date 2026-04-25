@@ -139,7 +139,7 @@ export async function GET(
       const dkEntries = artist.distrokidData;
 
       // Aggregate by month
-      const monthMap = new Map<string, { earnings: number; streams: number }>();
+      const monthMap = new Map<string, { earnings: number; streams: number; coreStreams: number }>();
       const storeMap = new Map<string, { earnings: number; streams: number }>();
       const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number }>();
       const countryMap = new Map<string, { earnings: number; streams: number }>();
@@ -156,9 +156,12 @@ export async function GET(
         if (e.saleMonth > maxMonth) maxMonth = e.saleMonth;
 
         // Monthly
-        const m = monthMap.get(e.saleMonth) || { earnings: 0, streams: 0 };
+        const m = monthMap.get(e.saleMonth) || { earnings: 0, streams: 0, coreStreams: 0 };
         m.earnings += e.earnings;
         m.streams += e.quantity;
+        if (e.store === 'Spotify' || e.store === 'Apple Music') {
+          m.coreStreams += e.quantity;
+        }
         monthMap.set(e.saleMonth, m);
 
         // Platform
@@ -187,6 +190,7 @@ export async function GET(
           month,
           earnings: Math.round(d.earnings * 100) / 100,
           streams: d.streams,
+          coreStreams: d.coreStreams,
           effectiveCpm: d.streams > 0 ? Math.round((d.earnings / d.streams) * 1000 * 100) / 100 : 0,
         }));
 

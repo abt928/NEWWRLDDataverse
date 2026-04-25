@@ -54,14 +54,14 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
     // Let me just create a merged monthly view
 
     // Create month labels for DK data
-    const merged = distrokid.monthlyRevenue.map((mr) => {
+    const merged = distrokid.monthlyRevenue.map((mr: any) => {
       const [year, mo] = mr.month.split('-');
       const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
       return {
         label: `${months[parseInt(mo) - 1]} '${year.slice(2)}`,
         month: mr.month,
         earnings: mr.earnings,
-        streams: mr.streams,
+        streams: mr.coreStreams ?? mr.streams,
       };
     });
 
@@ -157,7 +157,7 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid }: { k
           <div className="chart-card-header">
             <h3>Streams & Revenue</h3>
             <span className="chart-legend">
-              <span className="chart-legend-item"><span className="chart-legend-color" data-color="streams" /> Streams</span>
+              <span className="chart-legend-item"><span className="chart-legend-color" data-color="streams" /> Streams (AM + Spotify)</span>
               <span className="chart-legend-item"><span className="chart-legend-color" data-color="actual" /> Revenue</span>
             </span>
           </div>
