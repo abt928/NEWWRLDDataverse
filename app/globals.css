@@ -367,6 +367,9 @@ a{color:var(--color-indigo);text-decoration:none}
 .cpm-row-total td{font-weight:700;border-top:2px solid var(--border-medium);background:var(--bg-card)}
 .cpm-est-badge{display:inline-block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.04em;background:var(--border-subtle);color:var(--text-tertiary);padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.4rem;vertical-align:middle;font-style:normal}
 .cpm-table tbody tr:hover td{background:var(--bg-card-hover)}
+.cpm-inline-input{background:var(--bg-base);border:1px solid var(--color-indigo);border-radius:6px;padding:0.3rem 0.5rem;color:var(--text-primary);font-family:var(--font-mono);font-size:0.85rem;width:90px;outline:none}
+.cpm-amount-clickable{cursor:pointer;border-bottom:1px dashed var(--border-subtle);transition:border-color 0.15s}
+.cpm-amount-clickable:hover{border-color:var(--color-indigo);color:var(--color-indigo)}
 
 /* ===== CHART LEGENDS & TOOLTIPS ===== */
 .chart-legend{display:flex;gap:1rem;font-size:0.75rem;color:var(--text-tertiary)}

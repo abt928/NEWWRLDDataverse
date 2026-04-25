@@ -54,6 +54,8 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
   const [newAmount, setNewAmount] = useState('');
   const [newNote, setNewNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [editingMonth, setEditingMonth] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // Compute streams per month from Luminate weekly data
   const monthlyStreams = useMemo(() => {
@@ -288,7 +290,49 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
                   <tr key={month} className={isActual ? 'cpm-row-actual' : 'cpm-row-estimated'}>
                     <td className="cpm-month">{getMonthLabel(month)}</td>
                     <td className="cpm-streams">{streams.toLocaleString()}</td>
-                    <td className="cpm-amount">{formatMoney(revenue)}{!isActual && blendedCpm > 0 && <span className="cpm-est-badge">est</span>}</td>
+                    <td className="cpm-amount">
+                      {editingMonth === month ? (
+                        <input
+                          className="cpm-inline-input"
+                          type="number"
+                          step="0.01"
+                          autoFocus
+                          placeholder="0.00"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter' && editValue && artistId) {
+                              const res = await fetch(`/api/artists/${artistId}/revenue`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ month, amount: parseFloat(editValue), note: '' }),
+                              });
+                              if (res.ok) {
+                                const saved = await res.json();
+                                const updated = entries.filter(x => x.month !== month);
+                                updated.push(saved);
+                                updated.sort((a, b) => b.month.localeCompare(a.month));
+                                onUpdate(updated);
+                              }
+                              setEditingMonth(null);
+                              setEditValue('');
+                            } else if (e.key === 'Escape') {
+                              setEditingMonth(null);
+                              setEditValue('');
+                            }
+                          }}
+                          onBlur={() => { setEditingMonth(null); setEditValue(''); }}
+                        />
+                      ) : (
+                        <span
+                          className="cpm-amount-clickable"
+                          onClick={() => { setEditingMonth(month); setEditValue(isActual ? String(entry.amount) : ''); }}
+                          title="Click to enter revenue"
+                        >
+                          {formatMoney(revenue)}{!isActual && blendedCpm > 0 && <span className="cpm-est-badge">est</span>}
+                        </span>
+                      )}
+                    </td>
                     <td className="cpm-cpm">{streams > 0 ? formatMoney(cpm) : '—'}</td>
                     <td className="cpm-note">{isActual ? (entry.note || 'Manual entry') : (blendedCpm > 0 ? 'Estimated from CPM' : '—')}</td>
                     <td>
