@@ -39,32 +39,40 @@ export async function POST(req: NextRequest) {
     const artistLuminateId = artistItem?.luminateId || data.artistWeekly?.[0]?.luminateId || null;
     const artistGenre = artistItem?.mainGenre || '';
 
-    // 3. Upsert Artist
+    // 3. Upsert Artist — always scoped to the authenticated user
     let artist;
-    if (artistLuminateId) {
-      const existing = await prisma.artist.findUnique({ where: { luminateId: artistLuminateId } });
-      if (existing) {
+    // First, try to find by name + userId (most common case)
+    const existingByName = await prisma.artist.findFirst({ where: { name: artistName, userId } });
+    if (existingByName) {
+      artist = await prisma.artist.update({
+        where: { id: existingByName.id },
+        data: {
+          genre: artistGenre || existingByName.genre,
+          luminateId: existingByName.luminateId || artistLuminateId || undefined,
+          reportId: report.id,
+          luminateUploadedAt: new Date(),
+        },
+      });
+    } else if (artistLuminateId) {
+      // Check if this luminateId already belongs to the current user
+      const existingByLumId = await prisma.artist.findFirst({
+        where: { luminateId: artistLuminateId, userId },
+      });
+      if (existingByLumId) {
         artist = await prisma.artist.update({
-          where: { luminateId: artistLuminateId },
+          where: { id: existingByLumId.id },
           data: { name: artistName, genre: artistGenre, reportId: report.id, luminateUploadedAt: new Date() },
         });
       } else {
-        artist = await prisma.artist.create({
-          data: { luminateId: artistLuminateId, name: artistName, genre: artistGenre, reportId: report.id, userId, luminateUploadedAt: new Date() },
-        });
-      }
-    } else {
-      const existing = await prisma.artist.findFirst({ where: { name: artistName, userId } });
-      if (existing) {
-        artist = await prisma.artist.update({
-          where: { id: existing.id },
-          data: { genre: artistGenre || existing.genre, reportId: report.id, luminateUploadedAt: new Date() },
-        });
-      } else {
+        // Create new artist for this user (even if luminateId exists for another user)
         artist = await prisma.artist.create({
           data: { name: artistName, genre: artistGenre, reportId: report.id, userId, luminateUploadedAt: new Date() },
         });
       }
+    } else {
+      artist = await prisma.artist.create({
+        data: { name: artistName, genre: artistGenre, reportId: report.id, userId, luminateUploadedAt: new Date() },
+      });
     }
 
     // 4. Artist Weekly — delete old + bulk insert (much faster than 100 upserts)
