@@ -341,10 +341,12 @@ export async function POST(req: NextRequest) {
           await prisma.releaseGroup.deleteMany({ where: { artistId: dupe.id } });
         } catch { /* skip */ }
 
-        // Move uploads, distrokid, etc
+        // Move uploads, distrokid, manual revenue, pinned metrics, share links
         try { await prisma.artistUpload.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
         try { await prisma.distroKidMonthly.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+        try { await prisma.manualRevenue.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
         try { await prisma.pinnedMetric.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+        try { await prisma.shareLink.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
 
         // Delete duplicate
         await prisma.artist.delete({ where: { id: dupe.id } });

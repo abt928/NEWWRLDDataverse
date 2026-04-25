@@ -179,6 +179,14 @@ export async function POST() {
           data: { artistId: winner.id },
         });
 
+        // Move share links
+        try {
+          await prisma.shareLink.updateMany({
+            where: { artistId: loser.id },
+            data: { artistId: winner.id },
+          });
+        } catch { /* skip */ }
+
         // Delete loser
         await prisma.artist.delete({ where: { id: loser.id } });
         console.log(`[merge] Deleted duplicate: "${loser.name}" (${loser.id})`);
