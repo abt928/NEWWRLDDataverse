@@ -41,7 +41,6 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
     if (!data?.artistWeekly?.length) return new Map<string, number>();
     const map = new Map<string, number>();
     for (const row of data.artistWeekly) {
-      // Parse dateRange like "2025/05/23 - 2025/05/29" to get month
       const dateMatch = row.dateRange.match(/(\d{4})\/(\d{2})/);
       if (dateMatch) {
         const key = `${dateMatch[1]}-${dateMatch[2]}`;
@@ -51,10 +50,45 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
     return map;
   }, [data]);
 
-  // Total revenue and streams
+  // Build entry lookup
+  const entryMap = useMemo(() => {
+    const map = new Map<string, ManualRevenueEntry>();
+    for (const e of entries) map.set(e.month, e);
+    return map;
+  }, [entries]);
+
+  // Blended CPM from entered months only
   const totalRevenue = entries.reduce((s, e) => s + e.amount, 0);
   const totalStreamsForRevenueMonths = entries.reduce((s, e) => s + (monthlyStreams.get(e.month) || 0), 0);
-  const overallCpm = totalStreamsForRevenueMonths > 0 ? (totalRevenue / totalStreamsForRevenueMonths) * 1000 : 0;
+  const blendedCpm = totalStreamsForRevenueMonths > 0 ? (totalRevenue / totalStreamsForRevenueMonths) * 1000 : 0;
+
+  // All months from stream data, sorted
+  const allMonths = useMemo(() => {
+    return Array.from(monthlyStreams.keys()).sort();
+  }, [monthlyStreams]);
+
+  // Total streams across all months
+  const totalStreamsAll = useMemo(() => {
+    let sum = 0;
+    for (const v of monthlyStreams.values()) sum += v;
+    return sum;
+  }, [monthlyStreams]);
+
+  // Estimated total revenue = actual entered + estimated for untracked months
+  const estimatedTotalRevenue = useMemo(() => {
+    if (blendedCpm === 0) return 0;
+    let total = 0;
+    for (const month of allMonths) {
+      const entry = entryMap.get(month);
+      if (entry) {
+        total += entry.amount; // Use actual
+      } else {
+        const streams = monthlyStreams.get(month) || 0;
+        total += (streams * blendedCpm) / 1000; // Estimate
+      }
+    }
+    return total;
+  }, [blendedCpm, allMonths, entryMap, monthlyStreams]);
 
   const handleSave = async () => {
     if (!artistId || !newAmount) return;
@@ -96,25 +130,25 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
   return (
     <div className="panel">
       <h2 className="panel-title">🧮 CPM Calculator</h2>
-      <p className="panel-subtitle">Enter monthly payout amounts to calculate your actual CPM (revenue per 1,000 streams)</p>
+      <p className="panel-subtitle">Enter payouts for any months you know — the blended CPM is applied across all other months to estimate total revenue.</p>
 
       {/* Summary KPIs */}
       <div className="cpm-kpis">
-        <div className="cpm-kpi">
-          <span className="cpm-kpi-value">{formatMoney(overallCpm)}</span>
+        <div className="cpm-kpi cpm-kpi-highlight">
+          <span className="cpm-kpi-value">{formatMoney(blendedCpm)}</span>
           <span className="cpm-kpi-label">Blended CPM</span>
         </div>
         <div className="cpm-kpi">
+          <span className="cpm-kpi-value">{formatMoney(estimatedTotalRevenue)}</span>
+          <span className="cpm-kpi-label">Est. Total Revenue</span>
+        </div>
+        <div className="cpm-kpi">
           <span className="cpm-kpi-value">{formatMoney(totalRevenue)}</span>
-          <span className="cpm-kpi-label">Total Revenue Entered</span>
+          <span className="cpm-kpi-label">Confirmed Revenue</span>
         </div>
         <div className="cpm-kpi">
-          <span className="cpm-kpi-value">{totalStreamsForRevenueMonths.toLocaleString()}</span>
-          <span className="cpm-kpi-label">Matched Streams</span>
-        </div>
-        <div className="cpm-kpi">
-          <span className="cpm-kpi-value">{entries.length}</span>
-          <span className="cpm-kpi-label">Months Tracked</span>
+          <span className="cpm-kpi-value">{totalStreamsAll.toLocaleString()}</span>
+          <span className="cpm-kpi-label">Total Streams</span>
         </div>
       </div>
 
@@ -151,45 +185,58 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
         </div>
       </div>
 
-      {/* Entries Table */}
-      {entries.length > 0 && (
+      {/* Full Monthly Breakdown */}
+      {allMonths.length > 0 && (
         <div className="cpm-table-wrap">
           <table className="cpm-table">
             <thead>
               <tr>
                 <th>Month</th>
-                <th>Revenue</th>
                 <th>Streams</th>
+                <th>Revenue</th>
                 <th>CPM</th>
-                <th>Note</th>
+                <th>Source</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => {
-                const streams = monthlyStreams.get(entry.month) || 0;
-                const cpm = streams > 0 ? (entry.amount / streams) * 1000 : 0;
+              {allMonths.map((month) => {
+                const streams = monthlyStreams.get(month) || 0;
+                const entry = entryMap.get(month);
+                const isActual = !!entry;
+                const revenue = isActual ? entry.amount : (blendedCpm > 0 ? (streams * blendedCpm) / 1000 : 0);
+                const cpm = streams > 0 ? (revenue / streams) * 1000 : 0;
                 return (
-                  <tr key={entry.id}>
-                    <td className="cpm-month">{getMonthLabel(entry.month)}</td>
-                    <td className="cpm-amount">{formatMoney(entry.amount)}</td>
-                    <td className="cpm-streams">{streams > 0 ? streams.toLocaleString() : '—'}</td>
+                  <tr key={month} className={isActual ? 'cpm-row-actual' : 'cpm-row-estimated'}>
+                    <td className="cpm-month">{getMonthLabel(month)}</td>
+                    <td className="cpm-streams">{streams.toLocaleString()}</td>
+                    <td className="cpm-amount">{formatMoney(revenue)}{!isActual && blendedCpm > 0 && <span className="cpm-est-badge">est</span>}</td>
                     <td className="cpm-cpm">{streams > 0 ? formatMoney(cpm) : '—'}</td>
-                    <td className="cpm-note">{entry.note}</td>
+                    <td className="cpm-note">{isActual ? (entry.note || 'Manual entry') : (blendedCpm > 0 ? 'Estimated from CPM' : '—')}</td>
                     <td>
-                      <button className="cpm-delete" onClick={() => handleDelete(entry.month)} title="Remove">✕</button>
+                      {isActual && <button className="cpm-delete" onClick={() => handleDelete(month)} title="Remove">✕</button>}
                     </td>
                   </tr>
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="cpm-row-total">
+                <td className="cpm-month">Total</td>
+                <td className="cpm-streams">{totalStreamsAll.toLocaleString()}</td>
+                <td className="cpm-amount">{formatMoney(estimatedTotalRevenue)}</td>
+                <td className="cpm-cpm">{formatMoney(blendedCpm)}</td>
+                <td className="cpm-note">{entries.length} of {allMonths.length} months confirmed</td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}
 
-      {entries.length === 0 && (
+      {allMonths.length === 0 && (
         <div className="cpm-empty">
-          <p>No revenue entries yet. Add your first monthly payout above to start tracking CPM.</p>
+          <p>Upload a Luminate file first to see monthly stream data, then enter your payouts to calculate CPM.</p>
         </div>
       )}
     </div>

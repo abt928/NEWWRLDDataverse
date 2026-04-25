@@ -361,6 +361,12 @@ a{color:var(--color-indigo);text-decoration:none}
 .cpm-delete{background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:0.75rem;padding:0.25rem;border-radius:4px}
 .cpm-delete:hover{color:#ef4444;background:rgba(239,68,68,0.1)}
 .cpm-empty{text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.9rem}
+.cpm-kpi-highlight{border-color:var(--color-indigo);background:var(--color-indigo-glow)}
+.cpm-row-estimated td{opacity:0.65;font-style:italic}
+.cpm-row-actual{border-left:3px solid var(--color-emerald)}
+.cpm-row-total td{font-weight:700;border-top:2px solid var(--border-medium);background:var(--bg-card)}
+.cpm-est-badge{display:inline-block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.04em;background:var(--border-subtle);color:var(--text-tertiary);padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.4rem;vertical-align:middle;font-style:normal}
+.cpm-table tbody tr:hover td{background:var(--bg-card-hover)}
 .sidebar-brand-link{text-decoration:none;color:inherit}
 
 /* ===== BULK UPLOAD DROPZONE ===== */
