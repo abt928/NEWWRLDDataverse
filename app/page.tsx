@@ -57,6 +57,20 @@ function timeAgo(dateStr: string | null | undefined): string {
   return `${months}mo ago`;
 }
 
+function ConfirmModal({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal confirm-modal" onClick={(e) => e.stopPropagation()}>
+        <p>{message}</p>
+        <div className="confirm-actions">
+          <button className="btn-secondary" onClick={onCancel}>Cancel</button>
+          <button className="btn-danger" onClick={onConfirm}>Delete</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Sparkline({ data }: { data: number[] }) {
   if (!data.length) return null;
   const max = Math.max(...data, 1);
@@ -78,6 +92,7 @@ export default function HomePage() {
   const router = useRouter();
   const [artists, setArtists] = useState<ArtistCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState<ArtistCard | null>(null);
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [toasts, setToasts] = useState<{ id: number; message: string; type: 'success' | 'error' }[]>([]);
@@ -331,6 +346,11 @@ export default function HomePage() {
                   {a.distrokidUploadedAt && <span className="card-source" title={`DistroKid — ${timeAgo(a.distrokidUploadedAt)}`}>📦 {timeAgo(a.distrokidUploadedAt)}</span>}
                 </span>
               </div>
+              <button
+                className="card-delete-btn"
+                title="Delete artist"
+                onClick={(e) => { e.stopPropagation(); setDeleteTarget(a); }}
+              >✕</button>
             </div>
           ))}
         </div>
@@ -407,6 +427,25 @@ export default function HomePage() {
             <Toast key={t.id} message={t.message} type={t.type} onClose={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))} />
           ))}
         </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          message={`Delete "${deleteTarget.name}" and all associated data? This cannot be undone.`}
+          onCancel={() => setDeleteTarget(null)}
+          onConfirm={async () => {
+            const target = deleteTarget;
+            setDeleteTarget(null);
+            try {
+              const res = await fetch(`/api/artists/${target.id}/delete`, { method: 'DELETE' });
+              if (!res.ok) throw new Error('Delete failed');
+              addToast(`${target.name} deleted`, 'success');
+              await fetchArtists();
+            } catch {
+              addToast(`Failed to delete ${target.name}`, 'error');
+            }
+          }}
+        />
       )}
     </div>
   );
