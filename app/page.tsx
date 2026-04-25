@@ -217,7 +217,11 @@ export default function HomePage() {
 
       try {
         if (file.type === 'distrokid') {
-          // Client-side: parse CSV/ZIP → split by solo artist → send each
+          // Step 1: Parse the file
+          setFileQueue((prev) =>
+            prev.map((f) => f.id === file.id ? { ...f, status: 'saving' as const, error: 'Parsing file...' } : f)
+          );
+
           const buffer = await file.rawFile.arrayBuffer();
           let parsed;
           if (file.name.endsWith('.csv')) {
@@ -228,15 +232,28 @@ export default function HomePage() {
             parsed = await parseDistroKidZip(buffer);
           }
 
-          // Each solo artist gets their own profile
+          // Step 2: Upload each artist group
           const groups = parsed.artistGroups || [{ artistName: parsed.artistName, entries: parsed.rawEntries || [] }];
           let totalUpserted = 0;
+          let totalErrors = 0;
 
           for (const group of groups) {
             const groupEntries = group.entries || [];
+            if (groupEntries.length === 0) continue;
+
             const BATCH_SIZE = groupEntries.length > 10000 ? 2000 : 500;
+            const totalBatches = Math.ceil(groupEntries.length / BATCH_SIZE);
 
             for (let i = 0; i < groupEntries.length; i += BATCH_SIZE) {
+              const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+              setFileQueue((prev) =>
+                prev.map((f) => f.id === file.id ? {
+                  ...f,
+                  status: 'saving' as const,
+                  error: `Uploading ${group.artistName} (${batchNum}/${totalBatches})...`
+                } : f)
+              );
+
               const batch = groupEntries.slice(i, i + BATCH_SIZE).map((e) => ({
                 saleMonth: e.saleMonth,
                 store: e.store,
@@ -247,20 +264,34 @@ export default function HomePage() {
                 quantity: e.quantity,
                 earnings: e.earnings,
               }));
-              const res = await fetch('/api/upload/distrokid', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ entries: batch, artistName: group.artistName }),
-              });
-              if (res.ok) {
-                const result = await res.json();
-                totalUpserted += result.rowsProcessed || 0;
+
+              try {
+                const res = await fetch('/api/upload/distrokid', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ entries: batch, artistName: group.artistName }),
+                });
+
+                if (res.ok) {
+                  const result = await res.json();
+                  totalUpserted += result.rowsProcessed || 0;
+                } else {
+                  totalErrors++;
+                  console.error(`[dk-upload] Batch ${batchNum} failed for ${group.artistName}:`, res.status, await res.text().catch(() => ''));
+                }
+              } catch (fetchErr) {
+                totalErrors++;
+                console.error(`[dk-upload] Network error for ${group.artistName}:`, fetchErr);
               }
             }
           }
 
+          if (totalErrors > 0 && totalUpserted === 0) {
+            throw new Error(`Upload failed — ${totalErrors} errors`);
+          }
+
           setFileQueue((prev) =>
-            prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const } : f)
+            prev.map((f) => f.id === file.id ? { ...f, status: 'saved' as const, error: undefined } : f)
           );
           savedCount++;
         } else {
@@ -303,10 +334,14 @@ export default function HomePage() {
     }
 
     setSaving(false);
-    setTimeout(() => {
-      setShowUpload(false);
-      setFileQueue([]);
-    }, 1000);
+    // Only close modal after ALL processing is done — wait for user to see results
+    const hasErrors = fileQueue.some((f) => f.status === 'error');
+    if (!hasErrors) {
+      setTimeout(() => {
+        setShowUpload(false);
+        setFileQueue([]);
+      }, 2000);
+    }
   }, [fileQueue, fetchArtists, addToast]);
 
   const removeFile = useCallback((id: number) => {
@@ -449,7 +484,7 @@ export default function HomePage() {
             <div className="modal-header">
               <div>
                 <h3>Upload Data Sources</h3>
-                <p className="modal-subtitle">Drop all your files — Luminate (.xlsx) and DistroKid (.zip). Files are sent directly to the server.</p>
+                <p className="modal-subtitle">Drop all your files — Luminate (.xlsx) and DistroKid (.zip/.csv). Files are sent directly to the server.</p>
               </div>
               <button className="modal-close" onClick={() => !saving && setShowUpload(false)}>✕</button>
             </div>
@@ -483,6 +518,7 @@ export default function HomePage() {
                     <span className="queue-icon">{statusIcon(f.status)}</span>
                     <span className="queue-name">{f.name}</span>
                     <span className="queue-type">{f.type === 'luminate' ? 'Luminate' : 'DistroKid'}</span>
+                    {f.status === 'saving' && f.error && <span className="queue-progress">{f.error}</span>}
                     {f.status === 'error' && <span className="queue-error">{f.error}</span>}
                     {f.status !== 'saving' && f.status !== 'saved' && (
                       <button className="queue-remove" onClick={() => removeFile(f.id)}>✕</button>

@@ -955,6 +955,8 @@ a{color:var(--color-indigo);text-decoration:none}
 .queue-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
 .queue-type{font-size:0.65rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;padding:0.1rem 0.4rem;border:1px solid var(--border-subtle);border-radius:3px;flex-shrink:0}
 .queue-error{font-size:0.65rem;color:var(--color-red);flex-shrink:0}
+.queue-progress{font-size:0.6rem;color:rgba(255,255,255,0.5);flex-shrink:0;font-style:italic;animation:pulse-text 1.5s ease-in-out infinite}
+@keyframes pulse-text{0%,100%{opacity:0.5}50%{opacity:1}}
 .queue-remove{background:none;border:none;color:var(--text-tertiary);font-size:0.7rem;cursor:pointer;padding:0 0.2rem;flex-shrink:0}
 .queue-remove:hover{color:var(--color-red)}
 
