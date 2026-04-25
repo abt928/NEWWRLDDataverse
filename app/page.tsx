@@ -27,6 +27,7 @@ interface ArtistCard {
   hasTrends?: boolean;
   hasGeo?: boolean;
   hasDK?: boolean;
+  hasWeekly?: boolean;
 }
 
 const STAGE_OPTIONS = [
@@ -36,13 +37,13 @@ const STAGE_OPTIONS = [
   { id: 'closed', label: 'Closed', color: '#10b981' },
 ] as const;
 
-/** Weighted data completeness: QBR=25, Trends=25, DK=30, Geo=20 = 100 */
+/** Weighted data completeness based on ACTUAL data in DB */
 function computeDataScore(a: ArtistCard): { score: number; segments: { key: string; label: string; weight: number; active: boolean }[] } {
   const segments = [
-    { key: 'qbr', label: 'Luminate QBR', weight: 25, active: !!a.hasQBR },
-    { key: 'trends', label: 'Activity Trends', weight: 25, active: !!a.hasTrends },
-    { key: 'dk', label: 'DistroKid', weight: 30, active: !!a.hasDK },
-    { key: 'geo', label: 'Geo Detail', weight: 20, active: !!a.hasGeo },
+    { key: 'songs', label: 'Song/Release Data (QBR reports)', weight: 25, active: !!a.hasQBR },
+    { key: 'timeline', label: 'Weekly Timeline (50+ weeks)', weight: 25, active: !!a.hasTrends },
+    { key: 'dk', label: 'DistroKid Revenue', weight: 30, active: !!a.hasDK },
+    { key: 'geo', label: 'Regional Breakdown (US/MX)', weight: 20, active: !!a.hasGeo },
   ];
   const score = segments.reduce((s, seg) => s + (seg.active ? seg.weight : 0), 0);
   return { score, segments };
@@ -528,7 +529,7 @@ export default function HomePage() {
 /** Data completeness bar — labeled segments so users know what each piece means */
 function DataBar({ artist }: { artist: ArtistCard }) {
   const { score, segments } = computeDataScore(artist);
-  const abbrev: Record<string, string> = { qbr: 'QBR', trends: 'ACT', dk: 'DK', geo: 'GEO' };
+  const abbrev: Record<string, string> = { songs: 'SONGS', timeline: 'TIME', dk: 'DK', geo: 'GEO' };
 
   return (
     <div className="data-bar-wrap" onClick={(e) => e.stopPropagation()}>
@@ -539,7 +540,7 @@ function DataBar({ artist }: { artist: ArtistCard }) {
             key={seg.key}
             className={`data-bar-chip ${seg.active ? 'active' : ''}`}
             data-segment={seg.key}
-            title={`${seg.label}: ${seg.active ? 'Uploaded ✓' : 'Not yet uploaded'}`}
+            title={`${seg.label}: ${seg.active ? 'Available ✓' : 'Missing — upload more data'}`}
           >
             {abbrev[seg.key]}
           </span>

@@ -16,15 +16,24 @@ export async function GET() {
           orderBy: [{ year: 'desc' }, { week: 'desc' }],
           take: 12,
         },
-        uploads: {
-          select: { fileType: true, location: true },
-        },
         _count: {
-          select: { songs: true, releases: true, distrokidData: true },
+          select: {
+            songs: true,
+            releases: true,
+            distrokidData: true,
+            weekly: true,
+          },
         },
       },
       orderBy: { name: 'asc' },
     });
+
+    // Batch-query geo data: which artists have non-Worldwide weekly entries?
+    const geoArtists = await prisma.artistWeekly.groupBy({
+      by: ['artistId'],
+      where: { location: { not: 'Worldwide' } },
+    });
+    const geoSet = new Set(geoArtists.map((g) => g.artistId));
 
     const result = artists.map((artist: any) => {
       const sorted = [...artist.weekly].sort((a: any, b: any) => {
@@ -47,6 +56,18 @@ export async function GET() {
 
       const sparkline = sorted.map((w: any) => w.quantity);
 
+      // Compute data completeness from ACTUAL data, not upload records
+      // hasQBR: artist has song-level or release-level data (QBR reports include these)
+      const hasQBR = artist._count.songs > 0 || artist._count.releases > 0;
+      // hasTrends: artist has substantial weekly timeline data (50+ weeks = Trends report)
+      const hasTrends = artist._count.weekly >= 50;
+      // hasGeo: artist has non-Worldwide location data in weekly entries
+      const hasGeo = geoSet.has(artist.id);
+      // hasDK: has DistroKid revenue data
+      const hasDK = artist._count.distrokidData > 0;
+      // hasWeekly: has ANY weekly data at all
+      const hasWeekly = artist._count.weekly > 0;
+
       return {
         id: artist.id,
         name: artist.name,
@@ -65,10 +86,11 @@ export async function GET() {
         luminateUploadedAt: artist.luminateUploadedAt,
         distrokidUploadedAt: artist.distrokidUploadedAt,
         pipelineStage: artist.pipelineStage || 'research',
-        hasQBR: artist.uploads.some((u: any) => u.fileType === 'luminate-qbr'),
-        hasTrends: artist.uploads.some((u: any) => u.fileType === 'luminate-trends'),
-        hasGeo: artist.uploads.some((u: any) => u.location !== 'Worldwide'),
-        hasDK: artist._count.distrokidData > 0,
+        hasQBR,
+        hasTrends,
+        hasGeo,
+        hasDK,
+        hasWeekly,
       };
     });
 

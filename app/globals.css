@@ -1799,11 +1799,11 @@ a{color:var(--color-indigo);text-decoration:none}
   opacity: 1;
 }
 
-.data-bar-chip.active[data-segment="qbr"] {
+.data-bar-chip.active[data-segment="songs"] {
   background: rgba(99, 102, 241, 0.15);
   color: #818cf8;
 }
-.data-bar-chip.active[data-segment="trends"] {
+.data-bar-chip.active[data-segment="timeline"] {
   background: rgba(139, 92, 246, 0.15);
   color: #a78bfa;
 }
