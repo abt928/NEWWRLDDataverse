@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import type { LuminateDataset } from '@/lib/types';
 
 interface ManualRevenueEntry {
@@ -21,10 +22,28 @@ function formatMoney(n: number): string {
   return '$' + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return '$' + (n / 1_000).toFixed(1) + 'K';
+  return '$' + n.toFixed(0);
+}
+
+function formatStreams(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
+  return n.toString();
+}
+
 function getMonthLabel(m: string): string {
   const [year, month] = m.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return `${months[parseInt(month) - 1]} ${year}`;
+}
+
+function getShortLabel(m: string): string {
+  const [year, month] = m.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${months[parseInt(month) - 1]} '${year.slice(2)}`;
 }
 
 export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanelProps) {
@@ -74,21 +93,27 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
     return sum;
   }, [monthlyStreams]);
 
-  // Estimated total revenue = actual entered + estimated for untracked months
-  const estimatedTotalRevenue = useMemo(() => {
-    if (blendedCpm === 0) return 0;
-    let total = 0;
-    for (const month of allMonths) {
+  // Chart data + estimated total revenue
+  const { chartData, estimatedTotalRevenue } = useMemo(() => {
+    let estTotal = 0;
+    const chart = allMonths.map((month) => {
+      const streams = monthlyStreams.get(month) || 0;
       const entry = entryMap.get(month);
-      if (entry) {
-        total += entry.amount; // Use actual
-      } else {
-        const streams = monthlyStreams.get(month) || 0;
-        total += (streams * blendedCpm) / 1000; // Estimate
-      }
-    }
-    return total;
-  }, [blendedCpm, allMonths, entryMap, monthlyStreams]);
+      const isActual = !!entry;
+      const revenue = isActual ? entry.amount : (blendedCpm > 0 ? (streams * blendedCpm) / 1000 : 0);
+      estTotal += revenue;
+      return {
+        month: getShortLabel(month),
+        monthKey: month,
+        streams,
+        revenue: Math.round(revenue * 100) / 100,
+        actualRevenue: isActual ? entry.amount : 0,
+        estimatedRevenue: isActual ? 0 : Math.round(revenue * 100) / 100,
+        isActual,
+      };
+    });
+    return { chartData: chart, estimatedTotalRevenue: estTotal };
+  }, [allMonths, monthlyStreams, entryMap, blendedCpm]);
 
   const handleSave = async () => {
     if (!artistId || !newAmount) return;
@@ -127,6 +152,24 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
     }
   };
 
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const d = payload[0]?.payload;
+    return (
+      <div className="cpm-chart-tooltip">
+        <div className="cpm-chart-tooltip-label">{label}</div>
+        <div className="cpm-chart-tooltip-row">
+          <span className="cpm-chart-tooltip-dot" data-type="streams" />
+          <span>Streams: {d?.streams?.toLocaleString()}</span>
+        </div>
+        <div className="cpm-chart-tooltip-row">
+          <span className="cpm-chart-tooltip-dot" data-type={d?.isActual ? 'actual' : 'estimated'} />
+          <span>Revenue: {formatMoney(d?.revenue || 0)} {!d?.isActual && blendedCpm > 0 ? '(est)' : ''}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="panel">
       <h2 className="panel-title">🧮 CPM Calculator</h2>
@@ -151,6 +194,38 @@ export default function CpmPanel({ artistId, entries, onUpdate, data }: CpmPanel
           <span className="cpm-kpi-label">Total Streams</span>
         </div>
       </div>
+
+      {/* Revenue Timeline Chart */}
+      {chartData.length > 0 && blendedCpm > 0 && (
+        <div className="chart-card animate-in">
+          <div className="chart-card-header">
+            <h3>Revenue Timeline</h3>
+            <span className="chart-legend">
+              <span className="chart-legend-item"><span className="chart-legend-color" data-color="actual" /> Confirmed</span>
+              <span className="chart-legend-item"><span className="chart-legend-color" data-color="estimated" /> Estimated</span>
+              <span className="chart-legend-item"><span className="chart-legend-color" data-color="streams" /> Streams</span>
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <ComposedChart data={chartData}>
+              <defs>
+                <linearGradient id="cpmStreamGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.15} />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis dataKey="month" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={Math.max(0, Math.floor(chartData.length / 8))} />
+              <YAxis yAxisId="streams" orientation="right" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatStreams(v)} width={50} />
+              <YAxis yAxisId="revenue" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar yAxisId="revenue" dataKey="actualRevenue" stackId="rev" fill="#34d399" radius={[2, 2, 0, 0]} />
+              <Bar yAxisId="revenue" dataKey="estimatedRevenue" stackId="rev" fill="rgba(52,211,153,0.3)" radius={[2, 2, 0, 0]} />
+              <Line yAxisId="streams" type="monotone" dataKey="streams" stroke="#6366f1" strokeWidth={2} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Add Entry Form */}
       <div className="cpm-form">
