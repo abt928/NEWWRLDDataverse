@@ -220,12 +220,12 @@ a{color:var(--color-indigo);text-decoration:none}
 .deal-card h4{font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.5rem;font-weight:500}
 .deal-card .deal-value{font-family:var(--font-mono);font-size:1.6rem;font-weight:700}
 .deal-card .deal-sub{font-size:0.75rem;color:var(--text-secondary);margin-top:0.2rem}
-.deal-card.accent-green{border-left:2px solid var(--color-emerald)}
-.deal-card.accent-amber{border-left:2px solid var(--color-amber)}
-.deal-card.accent-red{border-left:2px solid var(--color-red)}
-.deal-card.accent-indigo{border-left:2px solid var(--color-indigo)}
-.deal-card.accent-cyan{border-left:2px solid var(--color-cyan)}
-.deal-card.accent-purple{border-left:2px solid var(--color-violet)}
+.deal-card.accent-green{box-shadow:inset 0 -2px 0 var(--color-emerald)}
+.deal-card.accent-amber{box-shadow:inset 0 -2px 0 var(--color-amber)}
+.deal-card.accent-red{box-shadow:inset 0 -2px 0 var(--color-red)}
+.deal-card.accent-indigo{box-shadow:inset 0 -2px 0 var(--color-indigo)}
+.deal-card.accent-cyan{box-shadow:inset 0 -2px 0 var(--color-cyan)}
+.deal-card.accent-purple{box-shadow:inset 0 -2px 0 var(--color-violet)}
 .deal-rate-info{margin-top:0.5rem;font-size:0.75rem}
 .deal-classification{margin-top:0.5rem}
 .deal-basis{margin-top:0.75rem}
@@ -239,7 +239,7 @@ a{color:var(--color-indigo);text-decoration:none}
 .concentration-bar{display:flex;gap:0.5rem;align-items:center;margin:0.35rem 0}
 .concentration-bar-label{font-size:0.7rem;color:var(--text-secondary);width:50px;text-align:right}
 .concentration-bar-track{flex:1;height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden}
-.concentration-bar-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
+.concentration-bar-fill{height:100%;border-radius:3px;transition:transform 0.4s ease;transform-origin:left}
 .concentration-bar-value{font-family:var(--font-mono);font-size:0.7rem;width:50px;color:var(--text-secondary)}
 
 /* ===== SONG SELECTOR ===== */
@@ -309,7 +309,7 @@ a{color:var(--color-indigo);text-decoration:none}
 .platform-row{display:grid;grid-template-columns:140px 1fr auto;gap:0.75rem;align-items:center;padding:0.35rem 0}
 .platform-name{font-size:0.8rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .platform-bar-container{height:8px;background:var(--bg-primary);border-radius:4px;overflow:hidden}
-.platform-bar{height:100%;border-radius:4px;transition:width 0.4s ease}
+.platform-bar{height:100%;border-radius:4px;transition:transform 0.4s ease;transform-origin:left}
 .platform-stats{display:flex;gap:1rem;font-size:0.75rem;white-space:nowrap}
 .platform-earnings{font-family:var(--font-mono);color:var(--color-emerald);font-weight:500;min-width:70px;text-align:right}
 .platform-streams{font-family:var(--font-mono);color:var(--text-secondary);min-width:55px;text-align:right}
@@ -321,7 +321,7 @@ a{color:var(--color-indigo);text-decoration:none}
 .country-flag{font-family:var(--font-mono);font-size:0.7rem;color:var(--text-secondary)}
 .country-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .country-bar-container{height:6px;background:var(--bg-primary);border-radius:3px;overflow:hidden}
-.country-bar{height:100%;border-radius:3px;background:var(--color-indigo);transition:width 0.4s ease}
+.country-bar{height:100%;border-radius:3px;background:var(--color-indigo);transition:transform 0.4s ease;transform-origin:left}
 .country-earnings{font-family:var(--font-mono);color:var(--color-emerald);font-weight:500;font-size:0.75rem;text-align:right}
 .country-streams{font-family:var(--font-mono);color:var(--text-secondary);font-size:0.75rem;text-align:right}
 
@@ -371,7 +371,7 @@ a{color:var(--color-indigo);text-decoration:none}
 .cpm-empty{text-align:center;padding:2rem;color:var(--text-secondary);font-size:0.9rem}
 .cpm-kpi-highlight{border-color:var(--color-indigo);background:var(--color-indigo-glow)}
 .cpm-row-estimated td{opacity:0.65;font-style:italic}
-.cpm-row-actual{border-left:3px solid var(--color-emerald)}
+.cpm-row-actual{background:rgba(52,211,153,0.04)}
 .cpm-row-total td{font-weight:700;border-top:2px solid var(--border-medium);background:var(--bg-card)}
 .cpm-est-badge{display:inline-block;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.04em;background:var(--border-subtle);color:var(--text-tertiary);padding:0.1rem 0.35rem;border-radius:4px;margin-left:0.4rem;vertical-align:middle;font-style:normal}
 .cpm-table tbody tr:hover td{background:var(--bg-card-hover)}
@@ -440,7 +440,7 @@ a{color:var(--color-indigo);text-decoration:none}
 .geo-share-row{display:flex;align-items:center;gap:0.6rem}
 .geo-share-label{font-size:0.8rem;font-weight:600;color:var(--text-primary);width:130px;flex-shrink:0}
 .geo-share-track{flex:1;height:22px;background:var(--bg-base);border-radius:6px;overflow:hidden;position:relative}
-.geo-share-fill{height:100%;border-radius:6px;transition:width 0.5s ease}
+.geo-share-fill{height:100%;border-radius:6px;transition:transform 0.5s ease;transform-origin:left}
 .geo-share-fill.us{background:linear-gradient(90deg,#6366f1,#818cf8)}
 .geo-share-fill.mx{background:linear-gradient(90deg,#34d399,#6ee7b7)}
 .geo-share-fill.other{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
