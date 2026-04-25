@@ -145,7 +145,35 @@ export default function HomePage() {
       const res = await fetch('/api/artists');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) setArtists(data);
+        if (Array.isArray(data)) {
+          setArtists(data);
+          // Auto-dedup: check for duplicate normalized names
+          const seen = new Set<string>();
+          let hasDupes = false;
+          for (const a of data) {
+            const norm = a.name?.toLowerCase().replace(/^(clone\s+)+/i, '').replace(/\s+(top\s+\d+|albums?|all\s+\d+|free\s+songs?|artist\s+report|top\s+\d+\s*songs?)$/i, '').trim();
+            if (seen.has(norm)) { hasDupes = true; break; }
+            seen.add(norm);
+          }
+          if (hasDupes) {
+            console.log('[home] Duplicate artists detected, auto-merging...');
+            try {
+              const mergeRes = await fetch('/api/artists/merge', { method: 'POST' });
+              if (mergeRes.ok) {
+                const result = await mergeRes.json();
+                if (result.mergedGroups > 0) {
+                  console.log(`[home] Merged ${result.mergedGroups} duplicate groups`);
+                  // Re-fetch clean data
+                  const cleanRes = await fetch('/api/artists');
+                  if (cleanRes.ok) {
+                    const cleanData = await cleanRes.json();
+                    if (Array.isArray(cleanData)) setArtists(cleanData);
+                  }
+                }
+              }
+            } catch { /* merge failed, not critical */ }
+          }
+        }
       }
     } catch { /* DB not available */ }
     setLoading(false);

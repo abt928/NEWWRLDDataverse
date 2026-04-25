@@ -113,23 +113,38 @@ export async function POST(req: NextRequest) {
     const isTrends = !data.songWeekly?.length && !data.releaseGroupWeekly?.length && data.artistWeekly?.length > 0;
     const fileType = isTrends ? 'luminate-trends' : 'luminate-qbr';
 
-    // 5. Artist Weekly — delete old for THIS location only + bulk insert
+    // 5. Artist Weekly — upsert: update if same (artist, location, week, year) exists, create if not
+    //    This prevents double-counting while preserving data from other report time ranges
     if (data.artistWeekly?.length) {
-      await prisma.artistWeekly.deleteMany({ where: { artistId: artist.id, location } });
-      const result = await prisma.artistWeekly.createMany({
-        data: data.artistWeekly.map((row) => ({
-          artistId: artist.id,
-          location,
-          week: Math.round(row.week),
-          year: Math.round(row.year),
-          dateRange: row.dateRange || '',
-          quantity: Math.round(row.quantity),
-          ytd: row.ytd != null ? Math.round(row.ytd) : null,
-          atd: row.atd != null ? Math.round(row.atd) : null,
-        })),
-        skipDuplicates: true,
-      });
-      console.log(`[upload] Artist weekly (${location}): ${result.count} rows`);
+      let upserted = 0;
+      for (const row of data.artistWeekly) {
+        const week = Math.round(row.week);
+        const year = Math.round(row.year);
+        const quantity = Math.round(row.quantity);
+        await prisma.artistWeekly.upsert({
+          where: {
+            artistId_location_week_year: { artistId: artist.id, location, week, year },
+          },
+          update: {
+            dateRange: row.dateRange || '',
+            quantity,
+            ytd: row.ytd != null ? Math.round(row.ytd) : null,
+            atd: row.atd != null ? Math.round(row.atd) : null,
+          },
+          create: {
+            artistId: artist.id,
+            location,
+            week,
+            year,
+            dateRange: row.dateRange || '',
+            quantity,
+            ytd: row.ytd != null ? Math.round(row.ytd) : null,
+            atd: row.atd != null ? Math.round(row.atd) : null,
+          },
+        });
+        upserted++;
+      }
+      console.log(`[upload] Artist weekly (${location}): ${upserted} rows upserted`);
     }
 
     // 6. Track upload
@@ -261,10 +276,77 @@ export async function POST(req: NextRequest) {
 
     console.log(`[upload] ✅ Complete: ${artist.name} (${artist.id})`);
 
+    // 8. Auto-merge: find any other artists with the same normalized name and merge into this one
+    const allWithName = await prisma.artist.findMany({
+      where: {
+        id: { not: artist.id },
+      },
+    });
+    const myNormalized = normalizeArtistName(artist.name).toLowerCase();
+    const duplicates = allWithName.filter(
+      (a) => normalizeArtistName(a.name).toLowerCase() === myNormalized
+    );
+
+    if (duplicates.length > 0) {
+      console.log(`[upload] Found ${duplicates.length} duplicate(s) for "${artist.name}", merging...`);
+      for (const dupe of duplicates) {
+        // Move weekly data (skip constraint violations)
+        try {
+          const dupeWeekly = await prisma.artistWeekly.findMany({ where: { artistId: dupe.id } });
+          for (const w of dupeWeekly) {
+            try {
+              await prisma.artistWeekly.upsert({
+                where: { artistId_location_week_year: { artistId: artist.id, location: w.location, week: w.week, year: w.year } },
+                update: { quantity: w.quantity, ytd: w.ytd, atd: w.atd, dateRange: w.dateRange },
+                create: { artistId: artist.id, location: w.location, week: w.week, year: w.year, dateRange: w.dateRange, quantity: w.quantity, ytd: w.ytd, atd: w.atd },
+              });
+            } catch { /* skip */ }
+          }
+          await prisma.artistWeekly.deleteMany({ where: { artistId: dupe.id } });
+        } catch { /* skip */ }
+
+        // Move songs
+        try {
+          const dupeSongs = await prisma.song.findMany({ where: { artistId: dupe.id } });
+          for (const s of dupeSongs) {
+            const exists = await prisma.song.findFirst({ where: { luminateId: s.luminateId, artistId: artist.id } });
+            if (!exists) {
+              try { await prisma.song.update({ where: { id: s.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+            }
+          }
+          await prisma.songWeekly.deleteMany({ where: { song: { artistId: dupe.id } } });
+          await prisma.song.deleteMany({ where: { artistId: dupe.id } });
+        } catch { /* skip */ }
+
+        // Move releases
+        try {
+          const dupeRGs = await prisma.releaseGroup.findMany({ where: { artistId: dupe.id } });
+          for (const rg of dupeRGs) {
+            const exists = await prisma.releaseGroup.findFirst({ where: { luminateId: rg.luminateId, artistId: artist.id } });
+            if (!exists) {
+              try { await prisma.releaseGroup.update({ where: { id: rg.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+            }
+          }
+          await prisma.releaseGroupWeekly.deleteMany({ where: { releaseGroup: { artistId: dupe.id } } });
+          await prisma.releaseGroup.deleteMany({ where: { artistId: dupe.id } });
+        } catch { /* skip */ }
+
+        // Move uploads, distrokid, etc
+        try { await prisma.artistUpload.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+        try { await prisma.distroKidMonthly.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+        try { await prisma.pinnedMetric.updateMany({ where: { artistId: dupe.id }, data: { artistId: artist.id } }); } catch { /* skip */ }
+
+        // Delete duplicate
+        await prisma.artist.delete({ where: { id: dupe.id } });
+        console.log(`[upload] Merged & deleted duplicate: "${dupe.name}" (${dupe.id})`);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       artistId: artist.id,
       artistName: artist.name,
+      merged: duplicates.length,
       stats: {
         weeklyRows: data.artistWeekly?.length || 0,
         releases: releaseMap.size,
