@@ -19,6 +19,7 @@
   --color-amber: #fbbf24;
   --color-red: #f87171;
   --color-violet: #a78bfa;
+  --bg-base: #0a0a0d;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -27,11 +28,13 @@
   --font-mono: 'JetBrains Mono',monospace;
   --transition-fast: 120ms ease;
   --transition-base: 200ms ease;
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.35);
 }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px;-webkit-font-smoothing:antialiased}
-body{font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-primary);min-height:100vh}
+html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-primary);min-height:100vh;line-height:1.5}
 a{color:var(--color-indigo);text-decoration:none}
 
 /* ===== HOME PAGE ===== */
@@ -162,8 +165,13 @@ a{color:var(--color-indigo);text-decoration:none}
 
 /* ===== STAT CARDS ===== */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0.75rem;margin-bottom:1.5rem}
-.stat-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem 1.15rem;transition:background var(--transition-fast)}
-.stat-card:hover{background:var(--bg-card-hover)}
+.kpi-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem 1.15rem;transition:all var(--transition-base);box-shadow:var(--shadow-card)}
+.kpi-card:hover{background:var(--bg-card-hover);box-shadow:var(--shadow-card-hover);transform:translateY(-1px)}
+.kpi-label{font-size:0.65rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;margin-bottom:0.35rem}
+.kpi-value{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;letter-spacing:-0.02em;color:var(--text-primary)}
+.kpi-sub{font-size:0.72rem;color:var(--text-secondary);margin-top:0.15rem}
+.stat-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1rem 1.15rem;transition:all var(--transition-base);box-shadow:var(--shadow-card)}
+.stat-card:hover{background:var(--bg-card-hover);box-shadow:var(--shadow-card-hover);transform:translateY(-1px)}
 .stat-card.highlight{border-color:rgba(99,102,241,0.15)}
 .stat-card-label{font-size:0.65rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;margin-bottom:0.4rem}
 .stat-card-value{font-family:var(--font-mono);font-size:1.5rem;font-weight:600;letter-spacing:-0.02em}
@@ -171,9 +179,9 @@ a{color:var(--color-indigo);text-decoration:none}
 .stat-card-trend{font-family:var(--font-mono);font-size:0.75rem;font-weight:500;margin-top:0.2rem}
 
 /* ===== CHART CARDS ===== */
-.chart-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1.25rem;margin-bottom:1.25rem}
-.chart-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem}
-.chart-card-header h3{font-size:0.85rem;font-weight:600}
+.chart-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:1.25rem;margin-bottom:1.25rem;box-shadow:var(--shadow-card);transition:box-shadow var(--transition-base)}
+.chart-card:hover{box-shadow:var(--shadow-card-hover)}
+.chart-card h3{font-size:0.9rem;font-weight:600;letter-spacing:-0.01em;margin-bottom:0.75rem}
 .chart-card-controls{display:flex;gap:0.35rem}
 .chart-toggle{padding:0.3rem 0.6rem;border:1px solid var(--border-subtle);background:transparent;color:var(--text-tertiary);font-size:0.7rem;font-family:var(--font-sans);border-radius:var(--radius-sm);cursor:pointer;transition:all var(--transition-fast)}
 .chart-toggle:hover{border-color:var(--border-medium);color:var(--text-secondary)}
@@ -387,6 +395,15 @@ a{color:var(--color-indigo);text-decoration:none}
 .cpm-chart-tooltip-dot[data-type="estimated"]{background:rgba(52,211,153,0.4);border:1px solid #34d399}
 .chart-card-header{display:flex;justify-content:space-between;align-items:center}
 
+/* ===== UNIVERSAL CHART TOOLTIP ===== */
+.chart-tooltip{background:#12131a;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:0.65rem 0.9rem;font-size:0.8rem;box-shadow:0 8px 24px rgba(0,0,0,0.5);min-width:160px}
+.chart-tooltip .tooltip-label{color:#8b8da3;font-size:0.7rem;margin-bottom:0.4rem;text-transform:uppercase;letter-spacing:0.04em;font-weight:500}
+.chart-tooltip .tooltip-row{display:flex;align-items:center;gap:0.45rem;color:var(--text-primary);padding:0.15rem 0}
+.chart-tooltip .tooltip-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chart-tooltip .tooltip-name{flex:1;font-size:0.78rem;color:var(--text-secondary)}
+.chart-tooltip .tooltip-value{font-family:var(--font-mono);font-weight:600;font-size:0.8rem;color:var(--text-primary)}
+.chart-tooltip .tooltip-total{border-top:1px solid rgba(255,255,255,0.08);padding-top:0.35rem;margin-top:0.25rem}
+
 /* ===== ACQUISITION MODELING ===== */
 .acq-model-section{border:1px solid var(--border-subtle)}
 .acq-controls{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;padding:1rem 0;border-bottom:1px solid var(--border-subtle);margin-bottom:1rem}
@@ -437,6 +454,11 @@ a{color:var(--color-indigo);text-decoration:none}
 .geo-rev-amount{font-size:1.25rem;font-weight:700;color:var(--text-primary)}
 .geo-rev-pct{font-size:0.7rem;color:var(--text-tertiary);margin-top:0.15rem}
 .chart-subtitle{font-size:0.78rem;color:var(--text-tertiary);margin:-0.25rem 0 0.75rem}
+.chart-card-badge{font-size:0.65rem;font-weight:500;color:var(--text-tertiary);background:var(--bg-base);padding:0.15rem 0.5rem;border-radius:10px;margin-left:0.4rem;vertical-align:middle}
+.geo-legend{display:flex;gap:1rem;margin-bottom:0.5rem;padding-left:0.25rem}
+.geo-legend-item{display:flex;align-items:center;gap:0.35rem;font-size:0.75rem;color:var(--text-secondary);font-weight:500}
+.geo-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.geo-empty-link{display:inline-block;margin-top:1rem;font-size:0.85rem}
 
 /* ===== BULK UPLOAD DROPZONE ===== */
 .upload-dropzone{border:2px dashed var(--border-medium);border-radius:var(--radius-md);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all var(--transition-base);margin-bottom:1rem}
