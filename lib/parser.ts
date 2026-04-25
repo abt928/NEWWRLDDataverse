@@ -33,9 +33,54 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
 
   const summary = parseSummarySheet(workbook);
   const catalog = parseCatalogSheet(workbook);
-  const artistWeekly = parseArtistSheet(workbook);
+  let artistWeekly = parseArtistSheet(workbook);
   const releaseGroupWeekly = parseReleaseGroupSheet(workbook);
   const songWeekly = parseSongSheet(workbook);
+
+  // If no Artist sheet, synthesize artist-level weekly by aggregating song weekly data
+  if (artistWeekly.length === 0 && songWeekly.length > 0) {
+    console.log(`[parser] No Artist sheet — synthesizing from ${songWeekly.length} song weekly rows`);
+    const artistItem = catalog.find((c) => c.type === 'Artist');
+    const artistName = artistItem?.name || summary.reportName || 'Unknown';
+    const artistLuminateId = artistItem?.luminateId || '';
+
+    // Group by week+year, sum quantities
+    const weekMap = new Map<string, { week: number; year: number; dateRange: string; quantity: number }>();
+    for (const row of songWeekly) {
+      const key = `${row.year}-${row.week}`;
+      const existing = weekMap.get(key);
+      if (existing) {
+        existing.quantity += row.quantity;
+      } else {
+        weekMap.set(key, { week: row.week, year: row.year, dateRange: row.dateRange, quantity: row.quantity });
+      }
+    }
+
+    // Sort and compute running YTD/ATD
+    const sorted = Array.from(weekMap.values()).sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week);
+    let atd = 0;
+    let ytd = 0;
+    let currentYear = sorted[0]?.year ?? 0;
+    artistWeekly = sorted.map((w) => {
+      if (w.year !== currentYear) { ytd = 0; currentYear = w.year; }
+      atd += w.quantity;
+      ytd += w.quantity;
+      return {
+        location: 'Worldwide',
+        entity: 'Artist',
+        artist: artistName,
+        luminateId: artistLuminateId,
+        activity: 'Streams',
+        week: w.week,
+        year: w.year,
+        dateRange: w.dateRange,
+        quantity: w.quantity,
+        ytd,
+        atd,
+      };
+    });
+    console.log(`[parser] Synthesized ${artistWeekly.length} artist weekly rows (ATD: ${atd})`);
+  }
 
   console.log(`[parser] Parsed: summary=${summary.reportName}, catalog=${catalog.length}, artistWeekly=${artistWeekly.length}, rgWeekly=${releaseGroupWeekly.length}, songWeekly=${songWeekly.length}`);
 
