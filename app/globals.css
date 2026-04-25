@@ -386,6 +386,18 @@ a{color:var(--color-indigo);text-decoration:none}
 .cpm-chart-tooltip-dot[data-type="actual"]{background:#34d399}
 .cpm-chart-tooltip-dot[data-type="estimated"]{background:rgba(52,211,153,0.4);border:1px solid #34d399}
 .chart-card-header{display:flex;justify-content:space-between;align-items:center}
+
+/* ===== ACQUISITION MODELING ===== */
+.acq-model-section{border:1px solid var(--border-subtle)}
+.acq-controls{display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;padding:1rem 0;border-bottom:1px solid var(--border-subtle);margin-bottom:1rem}
+.acq-controls .cpm-field input{width:120px}
+.acq-info{display:flex;flex-direction:column;gap:0.15rem;padding:0.4rem 1rem;border-left:2px solid var(--border-subtle)}
+.acq-info-label{font-size:0.7rem;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.04em}
+.acq-info-value{font-size:1.1rem;font-weight:700;color:var(--text-primary)}
+.acq-scenarios{margin-top:1.5rem}
+.acq-scenarios h4{font-size:0.9rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.04em}
+.acq-verdict{margin-top:1rem;padding:1rem;border-radius:8px;background:var(--bg-base);border:1px solid var(--border-subtle);font-size:0.9rem;color:var(--text-secondary);line-height:1.6}
+
 .sidebar-brand-link{text-decoration:none;color:inherit}
 
 /* ===== BULK UPLOAD DROPZONE ===== */
