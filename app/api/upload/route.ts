@@ -23,7 +23,13 @@ export async function POST(req: NextRequest) {
     console.log(`[upload] Parsing ${file.name} (${(file.size / 1024).toFixed(0)}KB)...`);
     const buffer = await file.arrayBuffer();
     const data = parseLuminateWorkbook(buffer);
-    console.log(`[upload] Parsed: ${data.artistWeekly?.length || 0} weekly, ${data.songWeekly?.length || 0} songs, ${data.catalog?.length || 0} catalog`);
+    console.log(`[upload] Parsed: artistWeekly=${data.artistWeekly?.length || 0}, releaseGroupWeekly=${data.releaseGroupWeekly?.length || 0}, songWeekly=${data.songWeekly?.length || 0}, catalog=${data.catalog?.length || 0}`);
+    if (data.artistWeekly?.length) {
+      const sample = data.artistWeekly[0];
+      console.log(`[upload] Sample weekly: week=${sample.week}, year=${sample.year}, qty=${sample.quantity}, dateRange="${sample.dateRange}"`);
+    } else {
+      console.log(`[upload] ⚠️ NO artist weekly data parsed from file!`);
+    }
 
     // 1. Create Report
     const report = await prisma.report.create({

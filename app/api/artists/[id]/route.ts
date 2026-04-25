@@ -32,8 +32,8 @@ export async function GET(
       return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
     }
 
-    // Build Luminate dataset (if weekly data exists)
-    const hasLuminate = artist.weekly.length > 0;
+    // Build Luminate dataset if ANY luminate data exists (weekly, songs, releases, or upload marker)
+    const hasLuminate = artist.weekly.length > 0 || artist.songs.length > 0 || artist.releases.length > 0 || !!artist.luminateUploadedAt;
 
     const catalog: CatalogItem[] = [
       {

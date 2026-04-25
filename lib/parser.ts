@@ -29,11 +29,15 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
     workbook = XLSX.read(btoa(binary), { type: 'base64' });
   }
 
+  console.log(`[parser] Sheets found: ${workbook.SheetNames.join(', ')}`);
+
   const summary = parseSummarySheet(workbook);
   const catalog = parseCatalogSheet(workbook);
   const artistWeekly = parseArtistSheet(workbook);
   const releaseGroupWeekly = parseReleaseGroupSheet(workbook);
   const songWeekly = parseSongSheet(workbook);
+
+  console.log(`[parser] Parsed: summary=${summary.reportName}, catalog=${catalog.length}, artistWeekly=${artistWeekly.length}, rgWeekly=${releaseGroupWeekly.length}, songWeekly=${songWeekly.length}`);
 
   return { summary, catalog, artistWeekly, releaseGroupWeekly, songWeekly };
 }
