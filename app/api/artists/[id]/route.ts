@@ -67,7 +67,16 @@ export async function GET(
       })),
     ];
 
-    const artistWeekly: ArtistWeekly[] = artist.weekly.map((w: any) => ({
+    // Separate weekly data by location — Worldwide is primary for all analytics
+    const allWeekly = artist.weekly as any[];
+    const worldwideWeekly = allWeekly.filter((w: any) => w.location === 'Worldwide');
+    const usWeekly = allWeekly.filter((w: any) => w.location === 'United States');
+    const mxWeekly = allWeekly.filter((w: any) => w.location === 'Mexico');
+
+    // Use Worldwide as main data source for analytics
+    const primaryWeekly = worldwideWeekly.length > 0 ? worldwideWeekly : allWeekly.filter((w: any) => w.location === allWeekly[0]?.location);
+
+    const artistWeekly: ArtistWeekly[] = primaryWeekly.map((w: any) => ({
       location: 'Worldwide',
       entity: 'Artist',
       artist: artist.name,
@@ -80,6 +89,30 @@ export async function GET(
       ytd: w.ytd,
       atd: w.atd,
     }));
+
+    // Build geo breakdown: { month: { us, mx, worldwide, other } }
+    const geoBreakdown: Record<string, { worldwide: number; us: number; mx: number; other: number }> = {};
+    const weekKey = (w: any) => `${w.year}-W${String(w.week).padStart(2, '0')}`;
+
+    const wwMap = new Map<string, number>();
+    for (const w of worldwideWeekly) wwMap.set(weekKey(w), w.quantity);
+    const usMap = new Map<string, number>();
+    for (const w of usWeekly) usMap.set(weekKey(w), w.quantity);
+    const mxMap = new Map<string, number>();
+    for (const w of mxWeekly) mxMap.set(weekKey(w), w.quantity);
+
+    const allKeys = new Set([...wwMap.keys(), ...usMap.keys(), ...mxMap.keys()]);
+    for (const key of allKeys) {
+      const ww = wwMap.get(key) || 0;
+      const us = usMap.get(key) || 0;
+      const mx = mxMap.get(key) || 0;
+      geoBreakdown[key] = {
+        worldwide: ww,
+        us,
+        mx,
+        other: Math.max(0, ww - us - mx),
+      };
+    }
 
     const releaseGroupWeekly: ReleaseGroupWeekly[] = artist.releases.flatMap((r: any) =>
       r.weekly.map((w: any) => ({
@@ -234,9 +267,21 @@ export async function GET(
       };
     }
 
+    // Compute geo summary stats for sidebar
+    const geoSummary = {
+      hasGeoData: usWeekly.length > 0 || mxWeekly.length > 0,
+      locations: [
+        ...(worldwideWeekly.length > 0 ? [{ location: 'Worldwide', weeks: worldwideWeekly.length, totalStreams: worldwideWeekly.reduce((s: number, w: any) => s + w.quantity, 0) }] : []),
+        ...(usWeekly.length > 0 ? [{ location: 'United States', weeks: usWeekly.length, totalStreams: usWeekly.reduce((s: number, w: any) => s + w.quantity, 0) }] : []),
+        ...(mxWeekly.length > 0 ? [{ location: 'Mexico', weeks: mxWeekly.length, totalStreams: mxWeekly.reduce((s: number, w: any) => s + w.quantity, 0) }] : []),
+      ],
+    };
+
     return NextResponse.json({
       luminate,
       distrokid,
+      geoBreakdown: Object.keys(geoBreakdown).length > 0 ? geoBreakdown : null,
+      geoSummary,
       manualRevenue: artist.manualRevenue,
       luminateUploadedAt: artist.luminateUploadedAt,
       distrokidUploadedAt: artist.distrokidUploadedAt,
