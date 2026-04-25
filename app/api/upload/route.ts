@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`[upload] Parsing ${file.name} (${(file.size / 1024).toFixed(0)}KB)...`);
     const buffer = await file.arrayBuffer();
-    const data = parseLuminateWorkbook(buffer);
+    const data = parseLuminateWorkbook(buffer, file.name);
     console.log(`[upload] Parsed: artistWeekly=${data.artistWeekly?.length || 0}, releaseGroupWeekly=${data.releaseGroupWeekly?.length || 0}, songWeekly=${data.songWeekly?.length || 0}, catalog=${data.catalog?.length || 0}`);
     if (data.artistWeekly?.length) {
       const sample = data.artistWeekly[0];

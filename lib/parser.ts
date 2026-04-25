@@ -12,15 +12,11 @@ import type {
 // Main Parser — accepts an ArrayBuffer from FileReader
 // ============================================================
 
-export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
-  // Use buffer type for server (Node.js), base64 for browser
-  // SheetJS 0.18.5 has a fflate bug with ArrayBuffer — both approaches bypass it
+export function parseLuminateWorkbook(buffer: ArrayBuffer, fileName?: string): LuminateDataset {
   let workbook;
   if (typeof Buffer !== 'undefined' && Buffer.from) {
-    // Server-side: use Node Buffer directly
     workbook = XLSX.read(Buffer.from(buffer), { type: 'buffer' });
   } else {
-    // Client-side: convert to base64
     const bytes = new Uint8Array(buffer);
     let binary = '';
     for (let i = 0; i < bytes.length; i++) {
@@ -30,6 +26,14 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
   }
 
   console.log(`[parser] Sheets found: ${workbook.SheetNames.join(', ')}`);
+
+  // Detect "Trends"-only format (Activity Over Time export)
+  const isTrendsOnly = workbook.SheetNames.includes('Trends') && !workbook.SheetNames.includes('Summary');
+
+  if (isTrendsOnly) {
+    console.log(`[parser] Detected Trends-only format (Activity Over Time)`);
+    return parseTrendsOnlyWorkbook(workbook, fileName);
+  }
 
   const summary = parseSummarySheet(workbook);
   const catalog = parseCatalogSheet(workbook);
@@ -44,7 +48,6 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
     const artistName = artistItem?.name || summary.reportName || 'Unknown';
     const artistLuminateId = artistItem?.luminateId || '';
 
-    // Group by week+year, sum quantities
     const weekMap = new Map<string, { week: number; year: number; dateRange: string; quantity: number }>();
     for (const row of songWeekly) {
       const key = `${row.year}-${row.week}`;
@@ -56,7 +59,6 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
       }
     }
 
-    // Sort and compute running YTD/ATD
     const sorted = Array.from(weekMap.values()).sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week);
     let atd = 0;
     let ytd = 0;
@@ -88,12 +90,117 @@ export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
 }
 
 // ============================================================
+// Trends-Only Parser (Activity Over Time export)
+// ============================================================
+
+function parseTrendsOnlyWorkbook(wb: XLSX.WorkBook, fileName?: string): LuminateDataset {
+  const ws = wb.Sheets['Trends'];
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // Extract artist name from filename: "DelKomando_Activity Over Time_..."
+  let artistName = 'Unknown Artist';
+  if (fileName) {
+    const parts = fileName.split('_');
+    if (parts.length > 0) artistName = parts[0].replace(/\.xlsx$/i, '');
+  }
+
+  // Extract location from row 0: "Custom (Wed, Apr 17 - Thu, Apr 23) - Worldwide"
+  const titleRow = String(rows[0]?.[0] || '');
+  const locMatch = titleRow.match(/-\s*(.+?)\s*$/);
+  const location = locMatch ? locMatch[1].trim() : 'Worldwide';
+
+  // Extract Luminate ID from filename
+  const idMatch = fileName?.match(/AR([A-F0-9]{32})/i);
+  const luminateId = idMatch ? idMatch[0] : '';
+
+  // Parse data rows (start at row 5, which is the first data row after 4 header rows + row 0 title)
+  const artistWeekly: ArtistWeekly[] = [];
+  const weeklyData: { week: number; year: number; dateRange: string; quantity: number }[] = [];
+
+  for (let i = 5; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[0]) continue;
+    const weekLabel = String(row[0]);
+    if (!weekLabel.startsWith('W')) continue;
+
+    // Parse "W16, 2026" → week=16, year=2026
+    const wMatch = weekLabel.match(/W(\d+),\s*(\d{4})/);
+    if (!wMatch) continue;
+    const week = parseInt(wMatch[1]);
+    const year = parseInt(wMatch[2]);
+    const totalStreams = num(row[2]); // Col 2 = Total Streams
+
+    // Convert Excel date serial to date range string
+    let dateRange = '';
+    if (row[1] && typeof row[1] === 'number') {
+      const parsed = XLSX.SSF.parse_date_code(row[1]);
+      const endDate = new Date(parsed.y, parsed.m - 1, parsed.d);
+      const startDate = new Date(endDate);
+      startDate.setDate(startDate.getDate() - 6);
+      const fmt = (d: Date) => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+      dateRange = `${fmt(startDate)} - ${fmt(endDate)}`;
+    }
+
+    weeklyData.push({ week, year, dateRange, quantity: totalStreams });
+  }
+
+  // Sort chronologically (oldest first)
+  weeklyData.sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week);
+
+  // Build artist weekly with running YTD/ATD
+  let atd = 0;
+  let ytd = 0;
+  let currentYear = weeklyData[0]?.year ?? 0;
+  for (const w of weeklyData) {
+    if (w.year !== currentYear) { ytd = 0; currentYear = w.year; }
+    atd += w.quantity;
+    ytd += w.quantity;
+    artistWeekly.push({
+      location,
+      entity: 'Artist',
+      artist: artistName,
+      luminateId,
+      activity: 'Streams',
+      week: w.week,
+      year: w.year,
+      dateRange: w.dateRange,
+      quantity: w.quantity,
+      ytd,
+      atd,
+    });
+  }
+
+  console.log(`[parser] Trends-only: ${artistWeekly.length} weeks for ${artistName} (ATD: ${atd})`);
+
+  // Create a minimal summary
+  const summary: ReportSummary = {
+    reportName: artistName,
+    reportGenerated: '',
+    reportId: '',
+    timeFrame: weeklyData.length > 0 ? `W${weeklyData[0].week} ${weeklyData[0].year} – W${weeklyData[weeklyData.length-1].week} ${weeklyData[weeklyData.length-1].year}` : '',
+    location,
+    market: '',
+    includedActivities: ['Streams'],
+  };
+
+  return {
+    summary,
+    catalog: [],
+    artistWeekly,
+    releaseGroupWeekly: [],
+    songWeekly: [],
+  };
+}
+
+// ============================================================
 // Summary Tab
 // ============================================================
 
 function parseSummarySheet(wb: XLSX.WorkBook): ReportSummary {
   const ws = wb.Sheets['Summary'];
-  if (!ws) throw new Error('Missing "Summary" sheet');
+  if (!ws) {
+    return { reportName: '', reportGenerated: '', reportId: '', timeFrame: '', location: 'Worldwide', market: '', includedActivities: [] };
+  }
 
   const rows: (string | null)[][] = XLSX.utils.sheet_to_json(ws, {
     header: 1,

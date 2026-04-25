@@ -56,40 +56,36 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
   // --- Acquisition Modeling ---
   const [decayRate, setDecayRate] = useState(10); // annual % decay
   const [acquisitionCost, setAcquisitionCost] = useState('');
-  const projectionYears = 10;
+  const projectionMonths = 24;
+  const snapshots = [6, 12, 18, 24]; // month milestones
 
   const currentAnnualStreams = deal.estimatedAnnualStreams;
   const currentAnnualRevenue = activeCpm ? Math.round((currentAnnualStreams / 1000) * activeCpm) : 0;
 
-  // Generate projection data
+  // Generate monthly projection data
   const projectionData = useMemo(() => {
     if (!activeCpm || currentAnnualStreams <= 0) return [];
     const monthlyDecay = Math.pow(1 - decayRate / 100, 1 / 12);
     const data = [];
     let cumRevenue = 0;
-    let streams = currentAnnualStreams / 12; // monthly starting streams
+    let streams = currentAnnualStreams / 12;
 
-    for (let yr = 0; yr < projectionYears; yr++) {
-      let yearStreams = 0;
-      let yearRevenue = 0;
-      for (let mo = 0; mo < 12; mo++) {
-        yearStreams += streams;
-        yearRevenue += (streams / 1000) * activeCpm;
-        streams *= monthlyDecay;
-      }
-      cumRevenue += yearRevenue;
+    for (let mo = 1; mo <= projectionMonths; mo++) {
+      const moRevenue = (streams / 1000) * activeCpm;
+      cumRevenue += moRevenue;
       data.push({
-        year: `Year ${yr + 1}`,
-        yearNum: yr + 1,
-        streams: Math.round(yearStreams),
-        revenue: Math.round(yearRevenue),
+        month: `M${mo}`,
+        monthNum: mo,
+        streams: Math.round(streams),
+        revenue: Math.round(moRevenue),
         cumRevenue: Math.round(cumRevenue),
       });
+      streams *= monthlyDecay;
     }
     return data;
-  }, [activeCpm, currentAnnualStreams, decayRate, projectionYears]);
+  }, [activeCpm, currentAnnualStreams, decayRate]);
 
-  // Risk scenarios
+  // Risk scenarios at snapshot months
   const scenarios = useMemo(() => {
     if (!activeCpm || currentAnnualStreams <= 0) return null;
     const cost = parseFloat(acquisitionCost) || 0;
@@ -98,28 +94,27 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
       const monthlyDecay = Math.pow(1 - annualDecay / 100, 1 / 12);
       let cumRev = 0;
       let streams = currentAnnualStreams / 12;
-      let breakEvenYear = -1;
-      const yearRevs = [];
+      let breakEvenMonth = -1;
+      const snapshotRevs: Record<number, number> = {};
 
-      for (let yr = 0; yr < projectionYears; yr++) {
-        let yrRev = 0;
-        for (let mo = 0; mo < 12; mo++) {
-          yrRev += (streams / 1000) * activeCpm;
-          streams *= monthlyDecay;
+      for (let mo = 1; mo <= projectionMonths; mo++) {
+        const moRev = (streams / 1000) * activeCpm;
+        cumRev += moRev;
+        if (cost > 0 && breakEvenMonth < 0 && cumRev >= cost) {
+          breakEvenMonth = mo;
         }
-        cumRev += yrRev;
-        yearRevs.push(Math.round(yrRev));
-        if (cost > 0 && breakEvenYear < 0 && cumRev >= cost) {
-          breakEvenYear = yr + 1;
+        if (snapshots.includes(mo)) {
+          snapshotRevs[mo] = Math.round(cumRev);
         }
+        streams *= monthlyDecay;
       }
 
       return {
         label,
         decay: annualDecay,
         totalRevenue: Math.round(cumRev),
-        breakEvenYear,
-        yearRevs,
+        breakEvenMonth,
+        snapshotRevs,
         roi: cost > 0 ? Math.round(((cumRev - cost) / cost) * 100) : 0,
       };
     };
@@ -130,7 +125,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
       pessimistic: runScenario(decayRate + 10, 'Pessimistic'),
       severe: runScenario(decayRate + 20, 'Severe Decline'),
     };
-  }, [activeCpm, currentAnnualStreams, decayRate, acquisitionCost, projectionYears]);
+  }, [activeCpm, currentAnnualStreams, decayRate, acquisitionCost]);
 
   const addEarning = () => {
     if (!newMonth || !newAmount || Number(newAmount) <= 0) return;
@@ -238,11 +233,11 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
               <input type="number" min="0" step="1000" placeholder="e.g., 50000" value={acquisitionCost} onChange={(e) => setAcquisitionCost(e.target.value)} />
             </div>
             <div className="acq-info">
-              <div className="acq-info-label">Year 1 Revenue</div>
-              <div className="acq-info-value">{projectionData[0] ? formatCurrency(projectionData[0].revenue) : '—'}</div>
+              <div className="acq-info-label">6 Mo Revenue</div>
+              <div className="acq-info-value">{projectionData[5] ? formatCurrency(projectionData[5].cumRevenue) : '—'}</div>
             </div>
             <div className="acq-info">
-              <div className="acq-info-label">10Y Total</div>
+              <div className="acq-info-label">24 Mo Total</div>
               <div className="acq-info-value">{projectionData[projectionData.length - 1] ? formatCurrency(projectionData[projectionData.length - 1].cumRevenue) : '—'}</div>
             </div>
           </div>
@@ -262,12 +257,12 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="year" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} />
+                <XAxis dataKey="month" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} interval={2} />
                 <YAxis yAxisId="rev" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
                 <YAxis yAxisId="cum" orientation="right" tick={{ fill: '#5a5c72', fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v: any) => formatCompact(v)} width={55} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area yAxisId="rev" type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2} fill="url(#dealRevGrad)" />
-                <Area yAxisId="cum" type="monotone" dataKey="cumRevenue" stroke="#6366f1" strokeWidth={2} fill="url(#dealCumGrad)" />
+                <Area yAxisId="rev" type="monotone" dataKey="revenue" stroke="#34d399" strokeWidth={2} fill="url(#dealRevGrad)" name="Monthly Revenue" />
+                <Area yAxisId="cum" type="monotone" dataKey="cumRevenue" stroke="#6366f1" strokeWidth={2} fill="url(#dealCumGrad)" name="Cumulative" />
               </ComposedChart>
             </ResponsiveContainer>
           )}
@@ -281,12 +276,12 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
                   <tr>
                     <th>Scenario</th>
                     <th>Decay</th>
-                    <th>10Y Revenue</th>
+                    <th>6 Mo</th>
+                    <th>12 Mo</th>
+                    <th>18 Mo</th>
+                    <th>24 Mo</th>
                     {parseFloat(acquisitionCost) > 0 && <th>Break-Even</th>}
-                    {parseFloat(acquisitionCost) > 0 && <th>10Y ROI</th>}
-                    <th>Yr 1</th>
-                    <th>Yr 3</th>
-                    <th>Yr 5</th>
+                    {parseFloat(acquisitionCost) > 0 && <th>24M ROI</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -294,10 +289,13 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
                     <tr key={s.label} className={s.label === 'Base Case' ? 'cpm-row-actual' : ''}>
                       <td className="cpm-month">{s.label}</td>
                       <td className="cpm-streams">{s.decay}%/yr</td>
-                      <td className="cpm-amount">{formatCurrency(s.totalRevenue)}</td>
+                      <td className="cpm-amount">{formatCurrency(s.snapshotRevs[6] || 0)}</td>
+                      <td className="cpm-amount">{formatCurrency(s.snapshotRevs[12] || 0)}</td>
+                      <td className="cpm-amount">{formatCurrency(s.snapshotRevs[18] || 0)}</td>
+                      <td className="cpm-amount">{formatCurrency(s.snapshotRevs[24] || 0)}</td>
                       {parseFloat(acquisitionCost) > 0 && (
-                        <td className={s.breakEvenYear > 0 ? 'cpm-cpm' : 'cpm-note'}>
-                          {s.breakEvenYear > 0 ? `Year ${s.breakEvenYear}` : 'Never'}
+                        <td className={s.breakEvenMonth > 0 ? 'cpm-cpm' : 'cpm-note'}>
+                          {s.breakEvenMonth > 0 ? `Month ${s.breakEvenMonth}` : '> 24mo'}
                         </td>
                       )}
                       {parseFloat(acquisitionCost) > 0 && (
@@ -305,20 +303,17 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
                           {s.roi > 0 ? `+${s.roi}%` : `${s.roi}%`}
                         </td>
                       )}
-                      <td className="cpm-streams">{formatCurrency(s.yearRevs[0] || 0)}</td>
-                      <td className="cpm-streams">{formatCurrency(s.yearRevs[2] || 0)}</td>
-                      <td className="cpm-streams">{formatCurrency(s.yearRevs[4] || 0)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {parseFloat(acquisitionCost) > 0 && scenarios.base.breakEvenYear > 0 && (
+              {parseFloat(acquisitionCost) > 0 && scenarios.base.breakEvenMonth > 0 && (
                 <div className="acq-verdict">
                   At <strong>{decayRate}%</strong> annual decay and <strong>{formatCurrency(parseFloat(acquisitionCost))}</strong> acquisition cost,
-                  break-even occurs in <strong>Year {scenarios.base.breakEvenYear}</strong> with a
+                  break-even occurs at <strong>Month {scenarios.base.breakEvenMonth}</strong> with a
                   <strong className={scenarios.base.roi > 50 ? ' text-emerald' : scenarios.base.roi > 0 ? ' text-amber' : ' text-red'}>
                     {' '}{scenarios.base.roi > 0 ? '+' : ''}{scenarios.base.roi}% ROI
-                  </strong> over 10 years.
+                  </strong> over 24 months.
                 </div>
               )}
             </div>
