@@ -277,6 +277,55 @@ export async function GET(
       ],
     };
 
+    // Compute data coverage: per-location, which weeks have data and where are gaps
+    const coverageByLocation = new Map<string, { weeks: { week: number; year: number; quantity: number }[]; totalStreams: number }>();
+    for (const w of allWeekly) {
+      const loc = w.location;
+      const entry = coverageByLocation.get(loc) || { weeks: [], totalStreams: 0 };
+      entry.weeks.push({ week: w.week, year: w.year, quantity: w.quantity });
+      entry.totalStreams += w.quantity;
+      coverageByLocation.set(loc, entry);
+    }
+
+    const dataCoverage = Array.from(coverageByLocation.entries()).map(([location, data]) => {
+      const sorted = data.weeks.sort((a, b) => a.year !== b.year ? a.year - b.year : a.week - b.week);
+      const first = sorted[0];
+      const last = sorted[sorted.length - 1];
+      
+      // Find gaps (missing weeks in the sequence)
+      const gaps: { fromWeek: number; fromYear: number; toWeek: number; toYear: number; missingWeeks: number }[] = [];
+      for (let i = 1; i < sorted.length; i++) {
+        const prev = sorted[i - 1];
+        const curr = sorted[i];
+        // Calculate expected next week
+        let nextWeek = prev.week + 1;
+        let nextYear = prev.year;
+        if (nextWeek > 52) { nextWeek = 1; nextYear++; }
+        
+        if (curr.year !== nextYear || curr.week !== nextWeek) {
+          // There's a gap
+          const missingWeeks = (curr.year - prev.year) * 52 + (curr.week - prev.week) - 1;
+          if (missingWeeks > 0) {
+            gaps.push({
+              fromWeek: nextWeek, fromYear: nextYear,
+              toWeek: curr.week > 1 ? curr.week - 1 : 52,
+              toYear: curr.week > 1 ? curr.year : curr.year - 1,
+              missingWeeks,
+            });
+          }
+        }
+      }
+
+      return {
+        location,
+        weekCount: sorted.length,
+        totalStreams: data.totalStreams,
+        firstWeek: first ? { week: first.week, year: first.year } : null,
+        lastWeek: last ? { week: last.week, year: last.year } : null,
+        gaps,
+      };
+    });
+
     return NextResponse.json({
       luminate,
       distrokid,
@@ -285,6 +334,7 @@ export async function GET(
       manualRevenue: artist.manualRevenue,
       luminateUploadedAt: artist.luminateUploadedAt,
       distrokidUploadedAt: artist.distrokidUploadedAt,
+      dataCoverage,
       uploads: (artist.uploads || []).map((u: any) => ({
         id: u.id,
         fileName: u.fileName,

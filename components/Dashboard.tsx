@@ -16,6 +16,7 @@ import RevenuePanel from './panels/RevenuePanel';
 import CpmPanel from './panels/CpmPanel';
 import FilterBar from './FilterBar';
 import GeoPanel from './panels/GeoPanel';
+import DataIntegrityPanel from './panels/DataIntegrityPanel';
 import { ReportProvider, useReport, METRIC_LABELS } from './ReportContext';
 
 interface NavItem {
@@ -37,6 +38,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: 'cpm', label: 'CPM Calculator', icon: '≡' },
   { id: 'revenue', label: 'Revenue & Platforms', icon: '$', source: 'distrokid' },
   { id: 'deal', label: 'Deal Intelligence', icon: '▲' },
+  { id: 'integrity', label: 'Data Integrity', icon: '⊘' },
   { id: 'contracts', label: 'Contract System', icon: '⚖' },
   { id: 'outreach', label: 'Artist Outreach', icon: '✉' },
 ];
@@ -70,6 +72,16 @@ interface DashboardProps {
   uploads?: UploadRecord[];
   geoBreakdown?: Record<string, { worldwide: number; us: number; mx: number; other: number }> | null;
   geoSummary?: { hasGeoData: boolean; locations: { location: string; weeks: number; totalStreams: number }[] };
+  dataCoverage?: DataCoverageEntry[];
+}
+
+interface DataCoverageEntry {
+  location: string;
+  weekCount: number;
+  totalStreams: number;
+  firstWeek: { week: number; year: number } | null;
+  lastWeek: { week: number; year: number } | null;
+  gaps: { fromWeek: number; fromYear: number; toWeek: number; toYear: number; missingWeeks: number }[];
 }
 
 interface UploadRecord {
@@ -93,7 +105,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [], uploads = [], geoBreakdown, geoSummary }: DashboardProps) {
+export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [], uploads = [], geoBreakdown, geoSummary, dataCoverage = [] }: DashboardProps) {
   const { data: session } = useSession();
   const hasLuminate = !!data;
   const hasDistroKid = !!distrokid;
@@ -186,7 +198,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
             </li>
           ))}
           <li className="nav-section" role="presentation">Business</li>
-          {navItems.filter(i => ['cpm','revenue','deal'].includes(i.id)).map((item) => (
+          {navItems.filter(i => ['cpm','revenue','deal','integrity'].includes(i.id)).map((item) => (
             <li key={item.id} role="presentation">
               <button
                 role="tab"
@@ -263,6 +275,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
         {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
+        {active === 'integrity' && <DataIntegrityPanel dataCoverage={dataCoverage} uploads={uploads} distrokid={distrokid} />}
         </div>
       </main>
     </div>

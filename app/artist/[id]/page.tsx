@@ -12,6 +12,15 @@ interface ManualRevenueEntry {
   note: string;
 }
 
+interface DataCoverageEntry {
+  location: string;
+  weekCount: number;
+  totalStreams: number;
+  firstWeek: { week: number; year: number } | null;
+  lastWeek: { week: number; year: number } | null;
+  gaps: { fromWeek: number; fromYear: number; toWeek: number; toYear: number; missingWeeks: number }[];
+}
+
 interface ArtistResponse {
   luminate: LuminateDataset | null;
   distrokid: DistroKidDataset | null;
@@ -28,6 +37,7 @@ interface ArtistResponse {
     totalStreams: number;
     uploadedAt: string;
   }[];
+  dataCoverage: DataCoverageEntry[];
   geoBreakdown: Record<string, { worldwide: number; us: number; mx: number; other: number }> | null;
   geoSummary: { hasGeoData: boolean; locations: { location: string; weeks: number; totalStreams: number }[] };
 }
@@ -79,6 +89,7 @@ export default function ArtistPage() {
       uploads={response.uploads || []}
       geoBreakdown={response.geoBreakdown}
       geoSummary={response.geoSummary}
+      dataCoverage={response.dataCoverage || []}
     />
   );
 }
