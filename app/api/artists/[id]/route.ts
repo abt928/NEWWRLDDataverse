@@ -26,6 +26,7 @@ export async function GET(
         },
         distrokidData: true,
         manualRevenue: { orderBy: { month: 'desc' } },
+        uploads: { orderBy: { uploadedAt: 'desc' } },
       },
     });
 
@@ -239,6 +240,16 @@ export async function GET(
       manualRevenue: artist.manualRevenue,
       luminateUploadedAt: artist.luminateUploadedAt,
       distrokidUploadedAt: artist.distrokidUploadedAt,
+      uploads: (artist.uploads || []).map((u: any) => ({
+        id: u.id,
+        fileName: u.fileName,
+        fileType: u.fileType,
+        location: u.location,
+        weekCount: u.weekCount,
+        songCount: u.songCount,
+        totalStreams: Number(u.totalStreams),
+        uploadedAt: u.uploadedAt,
+      })),
     });
   } catch (error) {
     console.error('Artist detail error:', error);

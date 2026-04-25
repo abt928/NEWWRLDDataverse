@@ -79,12 +79,18 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Artist Weekly — delete old + bulk insert
+    // 4. Determine location from data
+    const location = data.artistWeekly?.[0]?.location || data.summary?.location || 'Worldwide';
+    const isTrends = !data.songWeekly?.length && !data.releaseGroupWeekly?.length && data.artistWeekly?.length > 0;
+    const fileType = isTrends ? 'luminate-trends' : 'luminate-qbr';
+
+    // 5. Artist Weekly — delete old for THIS location only + bulk insert
     if (data.artistWeekly?.length) {
-      await prisma.artistWeekly.deleteMany({ where: { artistId: artist.id } });
+      await prisma.artistWeekly.deleteMany({ where: { artistId: artist.id, location } });
       const result = await prisma.artistWeekly.createMany({
         data: data.artistWeekly.map((row) => ({
           artistId: artist.id,
+          location,
           week: Math.round(row.week),
           year: Math.round(row.year),
           dateRange: row.dateRange || '',
@@ -94,8 +100,22 @@ export async function POST(req: NextRequest) {
         })),
         skipDuplicates: true,
       });
-      console.log(`[upload] Artist weekly: ${result.count} rows`);
+      console.log(`[upload] Artist weekly (${location}): ${result.count} rows`);
     }
+
+    // 6. Track upload
+    const totalStreams = data.artistWeekly?.reduce((s, r) => s + r.quantity, 0) || 0;
+    await prisma.artistUpload.create({
+      data: {
+        artistId: artist.id,
+        fileName: file.name,
+        fileType,
+        location,
+        weekCount: data.artistWeekly?.length || 0,
+        songCount: data.songWeekly?.length ? new Set(data.songWeekly.map(s => s.luminateId)).size : 0,
+        totalStreams: BigInt(totalStreams),
+      },
+    });
 
     // 5. Release Groups
     const releaseMap = new Map<string, string>();

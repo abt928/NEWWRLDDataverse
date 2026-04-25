@@ -62,6 +62,18 @@ interface DashboardProps {
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
   manualRevenue?: ManualRevenueEntry[];
+  uploads?: UploadRecord[];
+}
+
+interface UploadRecord {
+  id: string;
+  fileName: string;
+  fileType: string;
+  location: string;
+  weekCount: number;
+  songCount: number;
+  totalStreams: number;
+  uploadedAt: string;
 }
 
 function timeAgo(dateStr: string): string {
@@ -74,7 +86,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [] }: DashboardProps) {
+export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [], uploads = [] }: DashboardProps) {
   const { data: session } = useSession();
   const hasLuminate = !!data;
   const hasDistroKid = !!distrokid;
@@ -162,21 +174,51 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
           </div>
         )}
 
-        {/* Upload Status */}
+        {/* Upload Inventory */}
         <div className="sidebar-upload-status">
-          <div className="upload-status-item">
-            <span className="status-icon">📊</span>
-            Luminate —{' '}
-            <span className="status-date">
-              {luminateUploadedAt ? timeAgo(luminateUploadedAt) : 'Not uploaded'}
-            </span>
-          </div>
-          <div className="upload-status-item">
-            <span className="status-icon">📦</span>
-            DistroKid —{' '}
-            <span className="status-date">
-              {distrokidUploadedAt ? timeAgo(distrokidUploadedAt) : 'Not uploaded'}
-            </span>
+          <div className="upload-section-title">Uploaded Files</div>
+          {uploads.length > 0 ? (
+            uploads.map((u) => {
+              const geoFlag = u.location === 'Mexico' ? '🇲🇽' : u.location === 'United States' ? '🇺🇸' : u.location === 'Worldwide' ? '🌎' : '📍';
+              const typeLabel = u.fileType === 'luminate-trends' ? 'Trends' : u.fileType === 'distrokid' ? 'DK' : 'QBR';
+              return (
+                <div key={u.id} className="upload-file-row">
+                  <span className="upload-file-geo">{geoFlag}</span>
+                  <div className="upload-file-info">
+                    <div className="upload-file-name">{u.location} <span className="upload-file-type">{typeLabel}</span></div>
+                    <div className="upload-file-meta">
+                      {u.weekCount}w • {u.totalStreams > 1_000_000 ? `${(u.totalStreams / 1_000_000).toFixed(1)}M` : u.totalStreams > 1000 ? `${(u.totalStreams / 1000).toFixed(0)}K` : u.totalStreams} streams
+                      {u.songCount > 0 && ` • ${u.songCount} songs`}
+                    </div>
+                  </div>
+                  <span className="upload-file-time">{timeAgo(u.uploadedAt)}</span>
+                </div>
+              );
+            })
+          ) : (
+            <div className="upload-status-item">
+              <span className="status-icon">📊</span>
+              Luminate —{' '}
+              <span className="status-date">
+                {luminateUploadedAt ? timeAgo(luminateUploadedAt) : 'Not uploaded'}
+              </span>
+            </div>
+          )}
+          {hasDistroKid && (
+            <div className="upload-file-row">
+              <span className="upload-file-geo">📦</span>
+              <div className="upload-file-info">
+                <div className="upload-file-name">DistroKid <span className="upload-file-type">CSV</span></div>
+                <div className="upload-file-meta">{distrokid?.monthlyRevenue?.length || 0} months</div>
+              </div>
+              <span className="upload-file-time">{distrokidUploadedAt ? timeAgo(distrokidUploadedAt) : ''}</span>
+            </div>
+          )}
+          <div className="upload-formats-ref">
+            <div className="upload-formats-title">Accepted Formats</div>
+            <div className="upload-format-item"><span className="format-dot qbr" />Luminate QBR (.xlsx)</div>
+            <div className="upload-format-item"><span className="format-dot trends" />Luminate Activity Over Time (.xlsx)</div>
+            <div className="upload-format-item"><span className="format-dot dk" />DistroKid Earnings (.tsv)</div>
           </div>
         </div>
 

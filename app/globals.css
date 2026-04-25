@@ -400,6 +400,24 @@ a{color:var(--color-indigo);text-decoration:none}
 
 .sidebar-brand-link{text-decoration:none;color:inherit}
 
+/* ===== UPLOAD FILE INVENTORY ===== */
+.upload-section-title{font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-tertiary);margin-bottom:0.5rem}
+.upload-file-row{display:flex;align-items:center;gap:0.5rem;padding:0.45rem 0;border-bottom:1px solid var(--border-subtle)}
+.upload-file-row:last-of-type{border-bottom:none}
+.upload-file-geo{font-size:1.1rem;flex-shrink:0;width:1.5rem;text-align:center}
+.upload-file-info{flex:1;min-width:0}
+.upload-file-name{font-size:0.8rem;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.upload-file-type{font-size:0.65rem;font-weight:500;color:var(--text-tertiary);background:var(--bg-base);padding:0.1rem 0.35rem;border-radius:3px;margin-left:0.3rem;vertical-align:middle}
+.upload-file-meta{font-size:0.7rem;color:var(--text-tertiary);margin-top:0.1rem}
+.upload-file-time{font-size:0.65rem;color:var(--text-tertiary);flex-shrink:0;white-space:nowrap}
+.upload-formats-ref{margin-top:0.75rem;padding-top:0.5rem;border-top:1px solid var(--border-subtle)}
+.upload-formats-title{font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-tertiary);margin-bottom:0.35rem}
+.upload-format-item{font-size:0.7rem;color:var(--text-secondary);display:flex;align-items:center;gap:0.4rem;padding:0.15rem 0}
+.format-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.format-dot.qbr{background:#6366f1}
+.format-dot.trends{background:#34d399}
+.format-dot.dk{background:#f59e0b}
+
 /* ===== BULK UPLOAD DROPZONE ===== */
 .upload-dropzone{border:2px dashed var(--border-medium);border-radius:var(--radius-md);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all var(--transition-base);margin-bottom:1rem}
 .upload-dropzone:hover,.upload-dropzone.drag-over{border-color:var(--color-indigo);background:var(--color-indigo-glow)}

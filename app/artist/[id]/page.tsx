@@ -18,6 +18,16 @@ interface ArtistResponse {
   manualRevenue: ManualRevenueEntry[];
   luminateUploadedAt: string | null;
   distrokidUploadedAt: string | null;
+  uploads: {
+    id: string;
+    fileName: string;
+    fileType: string;
+    location: string;
+    weekCount: number;
+    songCount: number;
+    totalStreams: number;
+    uploadedAt: string;
+  }[];
 }
 
 export default function ArtistPage() {
@@ -64,6 +74,7 @@ export default function ArtistPage() {
       luminateUploadedAt={response.luminateUploadedAt}
       distrokidUploadedAt={response.distrokidUploadedAt}
       manualRevenue={response.manualRevenue || []}
+      uploads={response.uploads || []}
     />
   );
 }

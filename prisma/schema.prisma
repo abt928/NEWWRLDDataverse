@@ -107,6 +107,7 @@ model Artist {
   songs               Song[]
   distrokidData       DistroKidMonthly[]
   manualRevenue       ManualRevenue[]
+  uploads             ArtistUpload[]
   pinnedMetrics       PinnedMetric[]
   shareLinks          ShareLink[]
   luminateUploadedAt  DateTime?
@@ -129,10 +130,26 @@ model ManualRevenue {
   @@index([artistId])
 }
 
+model ArtistUpload {
+  id        String   @id @default(cuid())
+  artistId  String
+  artist    Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileType  String   // 'luminate-qbr', 'luminate-trends', 'distrokid'
+  location  String   @default("Worldwide")
+  weekCount Int      @default(0)
+  songCount Int      @default(0)
+  totalStreams BigInt @default(0)
+  uploadedAt DateTime @default(now())
+
+  @@index([artistId])
+}
+
 model ArtistWeekly {
   id        String @id @default(cuid())
   artistId  String
   artist    Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  location  String @default("Worldwide")
   week      Int
   year      Int
   dateRange String
@@ -140,7 +157,8 @@ model ArtistWeekly {
   ytd       Int?
   atd       Int?
 
-  @@unique([artistId, week, year])
+  @@unique([artistId, location, week, year])
+  @@index([artistId, location])
 }
 
 model ReleaseGroup {
