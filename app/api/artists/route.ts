@@ -16,6 +16,9 @@ export async function GET() {
           orderBy: [{ year: 'desc' }, { week: 'desc' }],
           take: 12,
         },
+        uploads: {
+          select: { fileType: true, location: true },
+        },
         _count: {
           select: { songs: true, releases: true, distrokidData: true },
         },
@@ -62,6 +65,10 @@ export async function GET() {
         luminateUploadedAt: artist.luminateUploadedAt,
         distrokidUploadedAt: artist.distrokidUploadedAt,
         pipelineStage: artist.pipelineStage || 'research',
+        hasQBR: artist.uploads.some((u: any) => u.fileType === 'luminate-qbr'),
+        hasTrends: artist.uploads.some((u: any) => u.fileType === 'luminate-trends'),
+        hasGeo: artist.uploads.some((u: any) => u.location !== 'Worldwide'),
+        hasDK: artist._count.distrokidData > 0,
       };
     });
 

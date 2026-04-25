@@ -23,6 +23,29 @@ interface ArtistCard {
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
   pipelineStage?: string;
+  hasQBR?: boolean;
+  hasTrends?: boolean;
+  hasGeo?: boolean;
+  hasDK?: boolean;
+}
+
+const STAGE_OPTIONS = [
+  { id: 'research', label: 'Research', color: '#818cf8' },
+  { id: 'review', label: 'Under Review', color: '#22d3ee' },
+  { id: 'negotiation', label: 'In Negotiation', color: '#f59e0b' },
+  { id: 'closed', label: 'Closed', color: '#10b981' },
+] as const;
+
+/** Weighted data completeness: QBR=25, Trends=25, DK=30, Geo=20 = 100 */
+function computeDataScore(a: ArtistCard): { score: number; segments: { key: string; label: string; weight: number; active: boolean }[] } {
+  const segments = [
+    { key: 'qbr', label: 'Luminate QBR', weight: 25, active: !!a.hasQBR },
+    { key: 'trends', label: 'Activity Trends', weight: 25, active: !!a.hasTrends },
+    { key: 'dk', label: 'DistroKid', weight: 30, active: !!a.hasDK },
+    { key: 'geo', label: 'Geo Detail', weight: 20, active: !!a.hasGeo },
+  ];
+  const score = segments.reduce((s, seg) => s + (seg.active ? seg.weight : 0), 0);
+  return { score, segments };
 }
 
 interface QueuedFile {
@@ -338,6 +361,7 @@ export default function HomePage() {
                 </div>
                 <Sparkline data={a.sparkline} />
               </div>
+              <DataBar artist={a} />
               <div className="card-stats">
                 <div className="card-stat">
                   <span className="card-stat-value">{formatNum(a.atd)}</span>
@@ -356,10 +380,17 @@ export default function HomePage() {
               </div>
               <div className="card-footer">
                 <span>{a.songCount} songs · {a.releaseCount} releases</span>
-                <span className="card-sources">
-                  {a.luminateUploadedAt && <span className="card-source" title={`Luminate — ${timeAgo(a.luminateUploadedAt)}`}>L {timeAgo(a.luminateUploadedAt)}</span>}
-                  {a.distrokidUploadedAt && <span className="card-source" title={`DistroKid — ${timeAgo(a.distrokidUploadedAt)}`}>D {timeAgo(a.distrokidUploadedAt)}</span>}
-                </span>
+                <StageDropdown
+                  stage={a.pipelineStage || 'research'}
+                  onChange={(stage) => {
+                    setArtists(prev => prev.map(x => x.id === a.id ? { ...x, pipelineStage: stage } : x));
+                    fetch(`/api/artists/${a.id}/stage`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ stage }),
+                    });
+                  }}
+                />
               </div>
               <button
                 className="card-delete-btn"
@@ -466,6 +497,66 @@ export default function HomePage() {
   );
 }
 
+/** Data completeness bar — segmented, gradient-filled */
+function DataBar({ artist }: { artist: ArtistCard }) {
+  const { score, segments } = computeDataScore(artist);
+  const colors: Record<string, string> = {
+    qbr: '#6366f1',
+    trends: '#818cf8',
+    dk: '#10b981',
+    geo: '#f59e0b',
+  };
+
+  return (
+    <div className="data-bar-wrap" title={`${score}% data completeness`} onClick={(e) => e.stopPropagation()}>
+      <div className="data-bar-track">
+        {segments.map(seg => (
+          <div
+            key={seg.key}
+            className={`data-bar-segment ${seg.active ? 'active' : ''}`}
+            data-segment={seg.key}
+            title={`${seg.label}: ${seg.active ? '✓' : 'missing'} (${seg.weight}%)`}
+          />
+        ))}
+      </div>
+      <span className="data-bar-label">{score}%</span>
+    </div>
+  );
+}
+
+/** Inline stage dropdown for artist cards */
+function StageDropdown({ stage, onChange }: { stage: string; onChange: (s: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const current = STAGE_OPTIONS.find(s => s.id === stage) || STAGE_OPTIONS[0];
+
+  return (
+    <div className="stage-dropdown" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="stage-dropdown-trigger"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="stage-dropdown-dot" data-stage={current.id} />
+        <span className="stage-dropdown-label">{current.label}</span>
+        <span className="stage-dropdown-arrow">{open ? '▴' : '▾'}</span>
+      </button>
+      {open && (
+        <div className="stage-dropdown-menu">
+          {STAGE_OPTIONS.map(opt => (
+            <button
+              key={opt.id}
+              className={`stage-dropdown-option ${opt.id === stage ? 'active' : ''}`}
+              onClick={() => { onChange(opt.id); setOpen(false); }}
+            >
+              <span className="stage-dropdown-dot" data-stage={opt.id} />
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Pipeline / Kanban Board */
 const PIPELINE_STAGES = [
   { id: 'research', label: 'Research', emptyText: 'Drag artists here to begin research' },
@@ -535,6 +626,7 @@ function PipelineBoard({ artists, onStageChange }: {
                 >
                   <div className="pipeline-card-name">{a.name}</div>
                   <div className="pipeline-card-genre">{a.genre || 'Music'}</div>
+                  <DataBar artist={a} />
                   <div className="pipeline-card-stats">
                     <div className="pipeline-card-stat">
                       <span className="pipeline-card-stat-value">{formatNum(a.atd)}</span>

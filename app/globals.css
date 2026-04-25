@@ -1756,3 +1756,162 @@ a{color:var(--color-indigo);text-decoration:none}
   .pipeline-board { grid-template-columns: 1fr; }
 }
 
+/* ================================================================
+   Data Completeness Bar
+   ================================================================ */
+.data-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+  margin-top: 0.25rem;
+}
+
+.data-bar-track {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  height: 5px;
+  border-radius: 100px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.data-bar-segment {
+  flex-grow: 1;
+  height: 100%;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.06);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Segment weights via flex-basis */
+.data-bar-segment[data-segment="qbr"]    { flex-basis: 25%; }
+.data-bar-segment[data-segment="trends"] { flex-basis: 25%; }
+.data-bar-segment[data-segment="dk"]     { flex-basis: 30%; }
+.data-bar-segment[data-segment="geo"]    { flex-basis: 20%; }
+
+/* Active segment fills */
+.data-bar-segment.active[data-segment="qbr"] {
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.3);
+}
+.data-bar-segment.active[data-segment="trends"] {
+  background: linear-gradient(90deg, #818cf8, #a78bfa);
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.3);
+}
+.data-bar-segment.active[data-segment="dk"] {
+  background: linear-gradient(90deg, #10b981, #34d399);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
+}
+.data-bar-segment.active[data-segment="geo"] {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+}
+
+.data-bar-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  min-width: 28px;
+  text-align: right;
+  letter-spacing: 0.02em;
+  transition: color 0.3s;
+}
+
+/* Glow effect when 100% complete */
+.data-bar-wrap:has(.data-bar-segment.active + .data-bar-segment.active + .data-bar-segment.active + .data-bar-segment.active) .data-bar-label {
+  color: #10b981;
+}
+
+/* ================================================================
+   Stage Dropdown
+   ================================================================ */
+.stage-dropdown {
+  position: relative;
+  z-index: 10;
+}
+
+.stage-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.stage-dropdown-trigger:hover {
+  border-color: rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.04);
+}
+
+.stage-dropdown-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stage-dropdown-dot[data-stage="research"]    { background: #818cf8; }
+.stage-dropdown-dot[data-stage="review"]      { background: #22d3ee; }
+.stage-dropdown-dot[data-stage="negotiation"] { background: #f59e0b; }
+.stage-dropdown-dot[data-stage="closed"]      { background: #10b981; }
+
+.stage-dropdown-label {
+  flex: 1;
+}
+
+.stage-dropdown-arrow {
+  font-size: 0.55rem;
+  color: var(--text-tertiary);
+}
+
+.stage-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: rgba(19, 19, 22, 0.95);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 8px;
+  padding: 0.25rem;
+  min-width: 140px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: dropResultsIn 0.15s ease-out;
+}
+
+.stage-dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4rem 0.625rem;
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.stage-dropdown-option:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: #fff;
+}
+
+.stage-dropdown-option.active {
+  color: #818cf8;
+  font-weight: 600;
+}
