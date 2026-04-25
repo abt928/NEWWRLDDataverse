@@ -36,11 +36,7 @@ export async function POST(req: NextRequest) {
 
     if (!artist) {
       artist = await prisma.artist.create({
-        data: {
-          name: artistName,
-          userId,
-          distrokidUploadedAt: new Date(),
-        },
+        data: { name: artistName, userId, distrokidUploadedAt: new Date() },
       });
     } else {
       artist = await prisma.artist.update({
@@ -49,47 +45,28 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Batch upsert DistroKid data (dedup via composite unique)
-    let upserted = 0;
-    for (const entry of entries) {
-      try {
-        await prisma.distroKidMonthly.upsert({
-          where: {
-            artistId_saleMonth_store_title_isrc_country: {
-              artistId: artist.id,
-              saleMonth: entry.saleMonth,
-              store: entry.store,
-              title: entry.title,
-              isrc: entry.isrc || '',
-              country: entry.country || '',
-            },
-          },
-          create: {
-            artistId: artist.id,
-            saleMonth: entry.saleMonth,
-            store: entry.store,
-            title: entry.title,
-            isrc: entry.isrc || '',
-            country: entry.country || '',
-            quantity: entry.quantity,
-            earnings: entry.earnings,
-          },
-          update: {
-            quantity: entry.quantity,
-            earnings: entry.earnings,
-          },
-        });
-        upserted++;
-      } catch {
-        // Skip individual row errors
-      }
-    }
+    // Bulk insert with skipDuplicates for speed (much faster than individual upserts)
+    const createData = entries.map((e) => ({
+      artistId: artist!.id,
+      saleMonth: e.saleMonth || '',
+      store: e.store || '',
+      title: e.title || '',
+      isrc: e.isrc || '',
+      country: e.country || '',
+      quantity: e.quantity || 0,
+      earnings: e.earnings || 0,
+    }));
+
+    const result = await prisma.distroKidMonthly.createMany({
+      data: createData,
+      skipDuplicates: true,
+    });
 
     return NextResponse.json({
       success: true,
       artistId: artist.id,
       artistName: artist.name,
-      rowsProcessed: upserted,
+      rowsProcessed: result.count,
     });
   } catch (error) {
     console.error('DistroKid upload error:', error);

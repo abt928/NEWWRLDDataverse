@@ -13,15 +13,21 @@ import type {
 // ============================================================
 
 export function parseLuminateWorkbook(buffer: ArrayBuffer): LuminateDataset {
-  // Convert to base64 to bypass SheetJS 0.18.5 fflate ZIP decompressor bug
-  // (throws "Bad uncompressed size" for entries with size=0 in local headers)
-  const bytes = new Uint8Array(buffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  // Use buffer type for server (Node.js), base64 for browser
+  // SheetJS 0.18.5 has a fflate bug with ArrayBuffer — both approaches bypass it
+  let workbook;
+  if (typeof Buffer !== 'undefined' && Buffer.from) {
+    // Server-side: use Node Buffer directly
+    workbook = XLSX.read(Buffer.from(buffer), { type: 'buffer' });
+  } else {
+    // Client-side: convert to base64
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    workbook = XLSX.read(btoa(binary), { type: 'base64' });
   }
-  const b64 = btoa(binary);
-  const workbook = XLSX.read(b64, { type: 'base64' });
 
   const summary = parseSummarySheet(workbook);
   const catalog = parseCatalogSheet(workbook);
