@@ -28,6 +28,8 @@ interface ArtistResponse {
     totalStreams: number;
     uploadedAt: string;
   }[];
+  geoBreakdown: Record<string, { worldwide: number; us: number; mx: number; other: number }> | null;
+  geoSummary: { hasGeoData: boolean; locations: { location: string; weeks: number; totalStreams: number }[] };
 }
 
 export default function ArtistPage() {
@@ -75,6 +77,8 @@ export default function ArtistPage() {
       distrokidUploadedAt={response.distrokidUploadedAt}
       manualRevenue={response.manualRevenue || []}
       uploads={response.uploads || []}
+      geoBreakdown={response.geoBreakdown}
+      geoSummary={response.geoSummary}
     />
   );
 }

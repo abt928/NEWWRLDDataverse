@@ -418,6 +418,26 @@ a{color:var(--color-indigo);text-decoration:none}
 .format-dot.trends{background:#34d399}
 .format-dot.dk{background:#f59e0b}
 
+/* ===== GEO PANEL ===== */
+.geo-share-bars{display:flex;flex-direction:column;gap:0.75rem;padding:0.5rem 0}
+.geo-share-row{display:flex;align-items:center;gap:0.6rem}
+.geo-share-label{font-size:0.8rem;font-weight:600;color:var(--text-primary);width:130px;flex-shrink:0}
+.geo-share-track{flex:1;height:22px;background:var(--bg-base);border-radius:6px;overflow:hidden;position:relative}
+.geo-share-fill{height:100%;border-radius:6px;transition:width 0.5s ease}
+.geo-share-fill.us{background:linear-gradient(90deg,#6366f1,#818cf8)}
+.geo-share-fill.mx{background:linear-gradient(90deg,#34d399,#6ee7b7)}
+.geo-share-fill.other{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.geo-share-value{font-size:0.8rem;font-weight:600;color:var(--text-primary);width:55px;text-align:right}
+.geo-share-pct{font-size:0.75rem;color:var(--text-tertiary);width:35px;text-align:right}
+.geo-wow-note{margin-top:0.75rem;font-size:0.78rem;color:var(--text-secondary);text-align:center;padding:0.5rem;border-radius:var(--radius-sm);background:var(--bg-base)}
+.geo-revenue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem;margin-top:0.5rem}
+.geo-rev-card{padding:1rem;border-radius:var(--radius-md);background:var(--bg-base);border:1px solid var(--border-subtle)}
+.geo-rev-card.geo-rev-total{border-color:var(--color-indigo);background:var(--color-indigo-glow)}
+.geo-rev-region{font-size:0.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:0.3rem}
+.geo-rev-amount{font-size:1.25rem;font-weight:700;color:var(--text-primary)}
+.geo-rev-pct{font-size:0.7rem;color:var(--text-tertiary);margin-top:0.15rem}
+.chart-subtitle{font-size:0.78rem;color:var(--text-tertiary);margin:-0.25rem 0 0.75rem}
+
 /* ===== BULK UPLOAD DROPZONE ===== */
 .upload-dropzone{border:2px dashed var(--border-medium);border-radius:var(--radius-md);padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:all var(--transition-base);margin-bottom:1rem}
 .upload-dropzone:hover,.upload-dropzone.drag-over{border-color:var(--color-indigo);background:var(--color-indigo-glow)}

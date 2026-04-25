@@ -15,6 +15,7 @@ import DealPanel from './panels/DealPanel';
 import RevenuePanel from './panels/RevenuePanel';
 import CpmPanel from './panels/CpmPanel';
 import FilterBar from './FilterBar';
+import GeoPanel from './panels/GeoPanel';
 
 interface NavItem {
   id: string;
@@ -31,6 +32,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: 'trends', label: 'Song Trends', icon: '📉', source: 'luminate' },
   { id: 'catalog', label: 'Catalog Mix', icon: '🎯', source: 'luminate' },
   { id: 'growth', label: 'Growth Metrics', icon: '🚀', source: 'luminate' },
+  { id: 'geo', label: 'Geo Data', icon: '🌍', source: 'luminate' },
   { id: 'cpm', label: 'CPM Calculator', icon: '🧮' },
   { id: 'revenue', label: 'Revenue & Platforms', icon: '💵', source: 'distrokid' },
   { id: 'deal', label: 'Deal Intelligence', icon: '💰' },
@@ -63,6 +65,8 @@ interface DashboardProps {
   distrokidUploadedAt?: string | null;
   manualRevenue?: ManualRevenueEntry[];
   uploads?: UploadRecord[];
+  geoBreakdown?: Record<string, { worldwide: number; us: number; mx: number; other: number }> | null;
+  geoSummary?: { hasGeoData: boolean; locations: { location: string; weeks: number; totalStreams: number }[] };
 }
 
 interface UploadRecord {
@@ -86,7 +90,7 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
-export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [], uploads = [] }: DashboardProps) {
+export default function Dashboard({ data, distrokid, onReset, artistId, luminateUploadedAt, distrokidUploadedAt, manualRevenue: initialRevenue = [], uploads = [], geoBreakdown, geoSummary }: DashboardProps) {
   const { data: session } = useSession();
   const hasLuminate = !!data;
   const hasDistroKid = !!distrokid;
@@ -251,6 +255,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'cpm' && <CpmPanel artistId={artistId} entries={revenueEntries} onUpdate={setRevenueEntries} data={data} />}
         {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
+        {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
       </main>
     </div>
   );
