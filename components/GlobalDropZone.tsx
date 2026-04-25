@@ -9,6 +9,7 @@ interface UploadResult {
   artistName?: string;
   artistId?: string;
   error?: string;
+  progress?: string;
   stats?: {
     weeklyRows?: number;
     releases?: number;
@@ -16,6 +17,7 @@ interface UploadResult {
     songWeeklyRows?: number;
     rowsProcessed?: number;
     isNew?: boolean;
+    artistCount?: number;
   };
 }
 
@@ -79,7 +81,7 @@ export default function GlobalDropZone() {
       const name = file.name.toLowerCase();
       if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
         validFiles.push({ file, type: 'luminate' });
-      } else if (name.endsWith('.zip')) {
+      } else if (name.endsWith('.zip') || name.endsWith('.csv')) {
         validFiles.push({ file, type: 'distrokid' });
       }
     }
@@ -102,43 +104,75 @@ export default function GlobalDropZone() {
 
       try {
         if (type === 'distrokid') {
-          const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
-          const buffer = await file.arrayBuffer();
-          const parsed = await parseDistroKidZip(buffer);
-          const rawEntries = parsed.rawEntries || [];
+          // Parse the file — CSV or ZIP
+          setResults(prev => prev.map((r, idx) => idx === i ? { ...r, progress: 'Parsing file...' } : r));
 
-          const BATCH_SIZE = 500;
+          const buffer = await file.arrayBuffer();
+          let parsed;
+          if (file.name.toLowerCase().endsWith('.csv')) {
+            const { parseDistroKidCSV } = await import('@/lib/distrokid-parser');
+            parsed = await parseDistroKidCSV(buffer);
+          } else {
+            const { parseDistroKidZip } = await import('@/lib/distrokid-parser');
+            parsed = await parseDistroKidZip(buffer);
+          }
+
+          // Upload each artist group separately
+          const groups = parsed.artistGroups || [{ artistName: parsed.artistName, entries: parsed.rawEntries || [] }];
           let totalUpserted = 0;
-          let artistId = '';
-          for (let j = 0; j < rawEntries.length; j += BATCH_SIZE) {
-            const batch = rawEntries.slice(j, j + BATCH_SIZE).map((e: any) => ({
-              saleMonth: e.saleMonth,
-              store: e.store,
-              artist: e.artist,
-              title: e.title,
-              isrc: e.isrc,
-              country: e.country,
-              quantity: e.quantity,
-              earnings: e.earnings,
-            }));
-            const res = await fetch('/api/upload/distrokid', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ entries: batch, artistName: parsed.artistName }),
-            });
-            if (res.ok) {
-              const result = await res.json();
-              totalUpserted += result.rowsProcessed || 0;
-              if (result.artistId) artistId = result.artistId;
+          let lastArtistId = '';
+
+          for (const group of groups) {
+            const groupEntries = group.entries || [];
+            if (groupEntries.length === 0) continue;
+
+            const BATCH_SIZE = groupEntries.length > 10000 ? 2000 : 500;
+            const totalBatches = Math.ceil(groupEntries.length / BATCH_SIZE);
+
+            for (let j = 0; j < groupEntries.length; j += BATCH_SIZE) {
+              const batchNum = Math.floor(j / BATCH_SIZE) + 1;
+              setResults(prev => prev.map((r, idx) => idx === i ? {
+                ...r,
+                progress: `Uploading ${group.artistName} (${batchNum}/${totalBatches})...`
+              } : r));
+
+              const batch = groupEntries.slice(j, j + BATCH_SIZE).map((e: any) => ({
+                saleMonth: e.saleMonth,
+                store: e.store,
+                artist: e.artist,
+                title: e.title,
+                isrc: e.isrc,
+                country: e.country,
+                quantity: e.quantity,
+                earnings: e.earnings,
+              }));
+
+              try {
+                const res = await fetch('/api/upload/distrokid', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ entries: batch, artistName: group.artistName }),
+                });
+                if (res.ok) {
+                  const result = await res.json();
+                  totalUpserted += result.rowsProcessed || 0;
+                  if (result.artistId) lastArtistId = result.artistId;
+                }
+              } catch (fetchErr) {
+                console.error(`[global-drop] Batch error for ${group.artistName}:`, fetchErr);
+              }
             }
           }
 
           setResults(prev => prev.map((r, idx) => idx === i ? {
             ...r,
             status: 'success' as const,
-            artistName: parsed.artistName,
-            artistId,
-            stats: { rowsProcessed: totalUpserted },
+            progress: undefined,
+            artistName: groups.length > 1
+              ? `${groups[0].artistName} + ${groups.length - 1} more`
+              : groups[0]?.artistName || parsed.artistName,
+            artistId: lastArtistId,
+            stats: { rowsProcessed: totalUpserted, artistCount: groups.length },
           } : r));
         } else {
           // Luminate
@@ -170,6 +204,7 @@ export default function GlobalDropZone() {
         setResults(prev => prev.map((r, idx) => idx === i ? {
           ...r,
           status: 'error' as const,
+          progress: undefined,
           error: err instanceof Error ? err.message : 'Upload failed',
         } : r));
       }
@@ -203,7 +238,7 @@ export default function GlobalDropZone() {
               </svg>
             </div>
             <h2 className="global-drop-title">Drop files to upload</h2>
-            <p className="global-drop-subtitle">Luminate (.xlsx) · DistroKid (.zip) · Activity Over Time (.xlsx)</p>
+            <p className="global-drop-subtitle">Luminate (.xlsx) · DistroKid (.zip/.csv) · Activity Over Time (.xlsx)</p>
             <div className="global-drop-border" />
           </div>
         </div>
@@ -249,7 +284,7 @@ export default function GlobalDropZone() {
                     <div className="drop-result-name">{r.fileName}</div>
                     <div className="drop-result-meta">
                       {r.status === 'uploading' && (
-                        <span className="drop-meta-uploading">Processing…</span>
+                        <span className="drop-meta-uploading">{r.progress || 'Processing…'}</span>
                       )}
                       {r.status === 'success' && r.artistName && (
                         <>
@@ -261,7 +296,8 @@ export default function GlobalDropZone() {
                           )}
                           {r.type === 'distrokid' && r.stats?.rowsProcessed && (
                             <span className="drop-meta-stats">
-                              {r.stats.rowsProcessed.toLocaleString()} earnings rows
+                              {r.stats.rowsProcessed.toLocaleString()} rows
+                              {r.stats.artistCount && r.stats.artistCount > 1 ? ` · ${r.stats.artistCount} artists` : ''}
                             </span>
                           )}
                         </>

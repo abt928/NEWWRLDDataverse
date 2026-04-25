@@ -18,16 +18,19 @@ interface ArtistCard {
   songCount: number;
   releaseCount: number;
   distrokidCount: number;
+  totalEarnings: number;
   sparkline: number[];
   lastUpdated: string;
   luminateUploadedAt?: string | null;
   distrokidUploadedAt?: string | null;
+  createdAt?: string;
   pipelineStage?: string;
   hasQBR?: boolean;
   hasTrends?: boolean;
   hasGeo?: boolean;
   hasDK?: boolean;
   hasWeekly?: boolean;
+  hasLuminate?: boolean;
 }
 
 const STAGE_OPTIONS = [
@@ -438,23 +441,48 @@ export default function HomePage() {
               </div>
               <DataBar artist={a} />
               <div className="card-stats">
-                <div className="card-stat">
-                  <span className="card-stat-value">{formatNum(a.atd)}</span>
-                  <span className="card-stat-label">ATD</span>
-                </div>
-                <div className="card-stat">
-                  <span className="card-stat-value">{formatNum(a.currentWeek)}</span>
-                  <span className="card-stat-label">This Week</span>
-                </div>
-                <div className="card-stat">
-                  <span className={`card-stat-value ${a.wowChange > 0 ? 'trend-up' : a.wowChange < 0 ? 'trend-down' : ''}`}>
-                    {a.wowChange > 0 ? '+' : ''}{a.wowChange}%
-                  </span>
-                  <span className="card-stat-label">WoW</span>
-                </div>
+                {a.hasLuminate ? (
+                  <>
+                    <div className="card-stat">
+                      <span className="card-stat-value">{formatNum(a.atd)}</span>
+                      <span className="card-stat-label">ATD</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className="card-stat-value">{formatNum(a.currentWeek)}</span>
+                      <span className="card-stat-label">This Week</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className={`card-stat-value ${a.wowChange > 0 ? 'trend-up' : a.wowChange < 0 ? 'trend-down' : ''}`}>
+                        {a.wowChange > 0 ? '+' : ''}{a.wowChange}%
+                      </span>
+                      <span className="card-stat-label">WoW</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="card-stat">
+                      <span className="card-stat-value">{formatNum(a.atd)}</span>
+                      <span className="card-stat-label">Streams</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className="card-stat-value">${a.totalEarnings >= 1000 ? formatNum(a.totalEarnings) : a.totalEarnings.toFixed(0)}</span>
+                      <span className="card-stat-label">Earnings</span>
+                    </div>
+                    <div className="card-stat">
+                      <span className="card-stat-value">{a.songCount}</span>
+                      <span className="card-stat-label">Songs</span>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="card-footer">
-                <span>{a.songCount} songs · {a.releaseCount} releases</span>
+                <span>
+                  {a.songCount > 0 ? `${a.songCount} songs` : ''}
+                  {a.songCount > 0 && a.releaseCount > 0 ? ' · ' : ''}
+                  {a.releaseCount > 0 ? `${a.releaseCount} releases` : ''}
+                  {a.hasDK && !a.hasLuminate && a.totalEarnings > 0 ? `$${a.totalEarnings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} revenue` : ''}
+                  {!a.songCount && !a.releaseCount && !a.hasDK ? 'No data yet' : ''}
+                </span>
                 <StageDropdown
                   stage={a.pipelineStage || 'research'}
                   onChange={(stage) => {
