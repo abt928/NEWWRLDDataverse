@@ -8,6 +8,7 @@ import type {
   CatalogComposition,
   FilterState,
   DealConfig,
+  DistroKidDataset,
 } from './types';
 
 // ============================================================
@@ -334,7 +335,8 @@ export function computeGrowthMetrics(data: LuminateDataset): GrowthMetrics {
 export function computeDealInsights(
   data: LuminateDataset,
   filters: FilterState,
-  dealConfig: DealConfig
+  dealConfig: DealConfig,
+  dkData?: DistroKidDataset | null
 ): DealInsights {
   const sorted = sortByDate(data.artistWeekly);
   const songs = computeSongAggregations(data, { ...filters, minStreams: 0 });
@@ -458,6 +460,32 @@ export function computeDealInsights(
   const top5Sum = sortedSongs.slice(0, 5).reduce((s, sg) => s + sg.atd, 0);
   const top5SongShare = totalATD > 0 ? top5Sum / totalATD * 100 : 0;
 
+  // === DistroKid-powered intelligence ===
+  let dkActualCpm: number | undefined;
+  let dkAnnualRevenue: number | undefined;
+  let dkMonthsCovered: number | undefined;
+  let avgTeamPercentage: number | undefined;
+  let dkTotalEarnings: number | undefined;
+  let dkTotalStreams: number | undefined;
+
+  if (dkData && dkData.totalStreams > 0) {
+    dkTotalEarnings = dkData.totalEarnings;
+    dkTotalStreams = dkData.totalStreams;
+    dkActualCpm = Math.round((dkData.totalEarnings / dkData.totalStreams) * 1000 * 100) / 100;
+    dkMonthsCovered = dkData.monthlyRevenue.length;
+    avgTeamPercentage = dkData.avgTeamPercentage;
+
+    // Annual revenue projection: use trailing 12 months if available, otherwise average
+    if (dkData.monthlyRevenue.length >= 12) {
+      const trailing12 = dkData.monthlyRevenue.slice(-12);
+      dkAnnualRevenue = Math.round(trailing12.reduce((s, m) => s + m.earnings, 0));
+    } else if (dkData.monthlyRevenue.length >= 3) {
+      // At least 3 months: extrapolate
+      const avgMonthly = dkData.totalEarnings / dkData.monthlyRevenue.length;
+      dkAnnualRevenue = Math.round(avgMonthly * 12);
+    }
+  }
+
   return {
     estimatedAnnualStreams,
     catalogConcentrationIndex,
@@ -472,6 +500,13 @@ export function computeDealInsights(
     top5SongShare: Math.round(top5SongShare * 10) / 10,
     effectiveCpm: effectiveCpm !== null ? Math.round(effectiveCpm * 100) / 100 : null,
     revenueFromActuals: revenueFromActuals !== null ? Math.round(revenueFromActuals) : null,
+    // DK fields
+    dkActualCpm,
+    dkAnnualRevenue,
+    dkMonthsCovered,
+    avgTeamPercentage,
+    dkTotalEarnings,
+    dkTotalStreams,
   };
 }
 

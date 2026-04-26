@@ -2397,6 +2397,96 @@ a:focus-visible {
 }
 
 /* /impeccable polish — print styles */
+/* ============================================================
+   DK Revenue Intelligence
+   ============================================================ */
+
+.dk-intelligence-section {
+  border: 1px solid rgba(52, 211, 153, 0.15);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.03) 0%, transparent 60%);
+}
+
+.dk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  animation: dkPulse 2s ease-in-out infinite;
+}
+
+.dk-badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+}
+
+@keyframes dkPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.song-ownership-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.song-ownership-section h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.team-pct-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.team-pct-badge.majority {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+}
+
+.team-pct-badge.minority {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+.deal-card.accent-emerald {
+  border-left: 3px solid #34d399;
+}
+
+.deal-card.accent-emerald h4 {
+  color: #34d399;
+}
+
+/* Revenue panel team % badge in song table */
+.song-team-pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-sm, 4px);
+  background: rgba(251, 191, 36, 0.1);
+  color: #fbbf24;
+  font-weight: 600;
+}
+
 @media print {
   .sidebar, .cb-wrap, .btn-sidebar, .sidebar-footer { display: none !important; }
   .main-content { padding: 0 !important; max-width: 100% !important; }

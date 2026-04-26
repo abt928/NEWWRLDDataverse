@@ -145,6 +145,7 @@ export default function GlobalDropZone() {
                 country: e.country,
                 quantity: e.quantity,
                 earnings: e.earnings,
+                teamPercentage: e.teamPercentage ?? 100,
               }));
 
               try {

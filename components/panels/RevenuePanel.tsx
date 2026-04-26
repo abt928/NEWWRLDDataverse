@@ -207,6 +207,7 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
                 <th className="text-right">Earnings</th>
                 <th className="text-right">Streams</th>
                 <th className="text-right">CPM</th>
+                <th>Team %</th>
                 <th>ISRC</th>
               </tr>
             </thead>
@@ -219,6 +220,13 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
                   <td className="text-right mono">${s.earnings.toFixed(2)}</td>
                   <td className="text-right mono">{formatNum(s.streams)}</td>
                   <td className="text-right mono">${s.cpm}</td>
+                  <td>
+                    {(s as any).teamPercentage != null && (s as any).teamPercentage < 100 ? (
+                      <span className="song-team-pct">{(s as any).teamPercentage}%</span>
+                    ) : (
+                      <span className="mono" style={{opacity:0.4}}>100%</span>
+                    )}
+                  </td>
                   <td className="mono isrc-col">{s.isrc}</td>
                 </tr>
               ))}

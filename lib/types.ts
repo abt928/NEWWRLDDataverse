@@ -167,6 +167,13 @@ export interface DealInsights {
   top5SongShare: number;
   effectiveCpm: number | null;  // derived from actual earnings data
   revenueFromActuals: number | null;  // annual projection from real data
+  // DistroKid-powered fields (populated when DK data exists)
+  dkActualCpm?: number;             // Real CPM from DistroKid data
+  dkAnnualRevenue?: number;         // Projected from actual DK earnings
+  dkMonthsCovered?: number;         // How many months of DK data
+  avgTeamPercentage?: number;       // Catalog-wide weighted ownership %
+  dkTotalEarnings?: number;         // Total lifetime DK earnings (your share)
+  dkTotalStreams?: number;          // Total lifetime DK streams
 }
 
 /** Catalog composition data */
@@ -226,6 +233,7 @@ export interface DistroKidDataset {
   totalStreams: number;
   dateRange: [string, string];   // earliest/latest sale month
   artistName: string;
+  avgTeamPercentage: number;     // Weighted avg team % across catalog
   monthlyRevenue: {
     month: string;
     earnings: number;
@@ -246,6 +254,16 @@ export interface DistroKidDataset {
     earnings: number;
     streams: number;
     cpm: number;
+    teamPercentage: number;      // Weighted avg team % for this song
+    grossEarnings: number;       // Before team split
+  }[];
+  songOwnership: {
+    title: string;
+    isrc: string;
+    teamPercentage: number;
+    grossEarnings: number;       // Before team split
+    yourEarnings: number;        // After team split (= earnings)
+    streams: number;
   }[];
   countryBreakdown: {
     country: string;

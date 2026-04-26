@@ -246,6 +246,17 @@ function aggregateEntries(entries: DistroKidEntry[]): DistroKidDataset {
   const totalEarnings = entries.reduce((s, e) => s + e.earnings, 0);
   const totalStreams = entries.reduce((s, e) => s + e.quantity, 0);
 
+  // Weighted average team percentage
+  let teamPctWeightedSum = 0;
+  let earningsForWeight = 0;
+  for (const e of entries) {
+    teamPctWeightedSum += (e.teamPercentage ?? 100) * e.earnings;
+    earningsForWeight += e.earnings;
+  }
+  const avgTeamPercentage = earningsForWeight > 0
+    ? Math.round((teamPctWeightedSum / earningsForWeight) * 10) / 10
+    : 100;
+
   // Date range
   const months = entries.map((e) => e.saleMonth).filter(Boolean).sort();
   const dateRange: [string, string] = [months[0] ?? '', months[months.length - 1] ?? ''];
@@ -286,22 +297,45 @@ function aggregateEntries(entries: DistroKidEntry[]): DistroKidDataset {
     }))
     .sort((a, b) => b.earnings - a.earnings);
 
-  // Song earnings
-  const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number }>();
+  // Song earnings with team percentage
+  const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number; teamPctWeightedSum: number; earningsForWeight: number }>();
   for (const e of entries) {
     const key = e.isrc || `${e.title}__${e.artist}`;
-    const existing = songMap.get(key) || { title: e.title, artist: e.artist, isrc: e.isrc, earnings: 0, streams: 0 };
+    const existing = songMap.get(key) || { title: e.title, artist: e.artist, isrc: e.isrc, earnings: 0, streams: 0, teamPctWeightedSum: 0, earningsForWeight: 0 };
     existing.earnings += e.earnings;
     existing.streams += e.quantity;
+    existing.teamPctWeightedSum += (e.teamPercentage ?? 100) * e.earnings;
+    existing.earningsForWeight += e.earnings;
     songMap.set(key, existing);
   }
   const songEarnings = Array.from(songMap.values())
-    .map((s) => ({
-      ...s,
-      earnings: Math.round(s.earnings * 100) / 100,
-      cpm: s.streams > 0 ? Math.round((s.earnings / s.streams) * 1000 * 100) / 100 : 0,
-    }))
+    .map((s) => {
+      const tp = s.earningsForWeight > 0 ? Math.round((s.teamPctWeightedSum / s.earningsForWeight) * 10) / 10 : 100;
+      const gross = tp > 0 ? Math.round((s.earnings / (tp / 100)) * 100) / 100 : s.earnings;
+      return {
+        title: s.title,
+        artist: s.artist,
+        isrc: s.isrc,
+        earnings: Math.round(s.earnings * 100) / 100,
+        streams: s.streams,
+        cpm: s.streams > 0 ? Math.round((s.earnings / s.streams) * 1000 * 100) / 100 : 0,
+        teamPercentage: tp,
+        grossEarnings: gross,
+      };
+    })
     .sort((a, b) => b.earnings - a.earnings);
+
+  // Song ownership: songs with < 100% team percentage
+  const songOwnership = songEarnings
+    .filter(s => s.teamPercentage < 100)
+    .map(s => ({
+      title: s.title,
+      isrc: s.isrc,
+      teamPercentage: s.teamPercentage,
+      grossEarnings: s.grossEarnings,
+      yourEarnings: s.earnings,
+      streams: s.streams,
+    }));
 
   // Country breakdown
   const countryMap = new Map<string, { earnings: number; streams: number }>();
@@ -325,9 +359,11 @@ function aggregateEntries(entries: DistroKidEntry[]): DistroKidDataset {
     totalStreams,
     dateRange,
     artistName,
+    avgTeamPercentage,
     monthlyRevenue,
     platformBreakdown,
     songEarnings,
+    songOwnership,
     countryBreakdown,
   };
 }

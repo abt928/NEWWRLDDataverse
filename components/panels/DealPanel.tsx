@@ -249,6 +249,92 @@ export default function DealPanel({ deal, kpis, distrokid, manualRevenue = [], l
         {deal.growthClassification === 'Accelerating' ? '✓ Strong upward momentum' : deal.growthClassification === 'Stable' ? '→ Stable trajectory' : '⚠ Declining trend'} — {formatCurrency(deal.revenueEstimateLow)}–{formatCurrency(deal.revenueEstimateHigh)} est. annual revenue. {decayRate}% modeled decay. Top song holds {Math.round(deal.topSongShare)}% of catalog. {activeCpm !== null ? `Calibrated CPM: $${activeCpm.toFixed(2)}.` : ''}
       </div>
 
+      {/* ===== DK Revenue Intelligence (only when DK data exists) ===== */}
+      {deal.dkActualCpm != null && (
+        <div className="chart-card dk-intelligence-section">
+          <div className="chart-card-header">
+            <h3>Revenue Intelligence <span className="panel-subtitle">Powered by DistroKid</span></h3>
+            <span className="dk-badge">Live Data</span>
+          </div>
+
+          <div className="deal-grid">
+            <div className="deal-card accent-emerald">
+              <PinButton metricKey="deal.dkActualCpm" />
+              <h4>Actual CPM</h4>
+              <div className="deal-value">${deal.dkActualCpm.toFixed(2)}</div>
+              <div className="deal-sub">Computed from {deal.dkMonthsCovered} months of earnings data</div>
+            </div>
+
+            {deal.dkAnnualRevenue != null && (
+              <div className="deal-card accent-green">
+                <PinButton metricKey="deal.dkAnnualRevenue" />
+                <h4>Projected Annual Revenue</h4>
+                <div className="deal-value">{formatCurrency(deal.dkAnnualRevenue)}</div>
+                <div className="deal-sub">
+                  {(deal.dkMonthsCovered ?? 0) >= 12 ? 'Trailing 12-month actual' : 'Extrapolated from available data'}
+                </div>
+              </div>
+            )}
+
+            {deal.avgTeamPercentage != null && (
+              <div className="deal-card accent-purple">
+                <PinButton metricKey="deal.avgTeamPercentage" />
+                <h4>Avg Ownership</h4>
+                <div className="deal-value">{deal.avgTeamPercentage}%</div>
+                <div className="deal-sub">Weighted average team percentage across catalog</div>
+                {deal.avgTeamPercentage < 100 && (
+                  <div className="deal-sub deal-rate-info">
+                    ⚠ Some songs have shared ownership
+                  </div>
+                )}
+              </div>
+            )}
+
+            {deal.dkTotalEarnings != null && (
+              <div className="deal-card accent-cyan">
+                <h4>Lifetime Earnings</h4>
+                <div className="deal-value">{formatCurrency(deal.dkTotalEarnings)}</div>
+                <div className="deal-sub">{formatNumber(deal.dkTotalStreams ?? 0)} total streams (your share)</div>
+              </div>
+            )}
+          </div>
+
+          {/* Song Ownership Table — songs with split ownership */}
+          {distrokid?.songOwnership && distrokid.songOwnership.length > 0 && (
+            <div className="song-ownership-section">
+              <h4>Split Ownership Songs</h4>
+              <p className="panel-subtitle">Songs where Team Percentage is below 100% — earnings shown are your share</p>
+              <table className="cpm-table">
+                <thead>
+                  <tr>
+                    <th>Song</th>
+                    <th>Your %</th>
+                    <th>Gross Revenue</th>
+                    <th>Your Share</th>
+                    <th>Streams</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {distrokid.songOwnership.slice(0, 20).map((s, i) => (
+                    <tr key={i}>
+                      <td className="cpm-month">{s.title}</td>
+                      <td>
+                        <span className={`team-pct-badge ${s.teamPercentage >= 50 ? 'majority' : 'minority'}`}>
+                          {s.teamPercentage}%
+                        </span>
+                      </td>
+                      <td className="cpm-amount">{formatCurrency(s.grossEarnings)}</td>
+                      <td className="cpm-amount">{formatCurrency(s.yourEarnings)}</td>
+                      <td className="cpm-streams">{formatNumber(s.streams)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="deal-grid">
         {/* Revenue Estimate Card */}
         <div className="deal-card accent-green">

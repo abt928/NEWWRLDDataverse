@@ -175,17 +175,22 @@ export async function GET(
       // Aggregate by month
       const monthMap = new Map<string, { earnings: number; streams: number; coreStreams: number }>();
       const storeMap = new Map<string, { earnings: number; streams: number }>();
-      const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number }>();
+      const songMap = new Map<string, { title: string; artist: string; isrc: string; earnings: number; streams: number; teamPctWeightedSum: number; earningsForWeight: number }>();
       const countryMap = new Map<string, { earnings: number; streams: number }>();
 
       let totalEarnings = 0;
       let totalStreams = 0;
       let minMonth = 'zzzz';
       let maxMonth = '';
+      let teamPctWeightedSum = 0;
+      let earningsForWeight = 0;
 
       for (const e of dkEntries) {
+        const tp = (e as any).teamPercentage ?? 100;
         totalEarnings += e.earnings;
         totalStreams += e.quantity;
+        teamPctWeightedSum += tp * e.earnings;
+        earningsForWeight += e.earnings;
         if (e.saleMonth < minMonth) minMonth = e.saleMonth;
         if (e.saleMonth > maxMonth) maxMonth = e.saleMonth;
 
@@ -204,11 +209,13 @@ export async function GET(
         st.streams += e.quantity;
         storeMap.set(e.store, st);
 
-        // Song
+        // Song — track team percentage
         const key = e.isrc || e.title;
-        const sg = songMap.get(key) || { title: e.title, artist: artist.name, isrc: e.isrc, earnings: 0, streams: 0 };
+        const sg = songMap.get(key) || { title: e.title, artist: artist.name, isrc: e.isrc, earnings: 0, streams: 0, teamPctWeightedSum: 0, earningsForWeight: 0 };
         sg.earnings += e.earnings;
         sg.streams += e.quantity;
+        sg.teamPctWeightedSum += tp * e.earnings;
+        sg.earningsForWeight += e.earnings;
         songMap.set(key, sg);
 
         // Country
@@ -217,6 +224,10 @@ export async function GET(
         c.streams += e.quantity;
         countryMap.set(e.country, c);
       }
+
+      const avgTeamPercentage = earningsForWeight > 0
+        ? Math.round((teamPctWeightedSum / earningsForWeight) * 10) / 10
+        : 100;
 
       const monthlyRevenue = Array.from(monthMap.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -241,10 +252,31 @@ export async function GET(
       const songEarnings = Array.from(songMap.values())
         .sort((a, b) => b.earnings - a.earnings)
         .slice(0, 100)
-        .map((s) => ({
-          ...s,
-          earnings: Math.round(s.earnings * 100) / 100,
-          cpm: s.streams > 0 ? Math.round((s.earnings / s.streams) * 1000 * 100) / 100 : 0,
+        .map((s) => {
+          const tp = s.earningsForWeight > 0 ? Math.round((s.teamPctWeightedSum / s.earningsForWeight) * 10) / 10 : 100;
+          const gross = tp > 0 ? Math.round((s.earnings / (tp / 100)) * 100) / 100 : s.earnings;
+          return {
+            title: s.title,
+            artist: s.artist,
+            isrc: s.isrc,
+            earnings: Math.round(s.earnings * 100) / 100,
+            streams: s.streams,
+            cpm: s.streams > 0 ? Math.round((s.earnings / s.streams) * 1000 * 100) / 100 : 0,
+            teamPercentage: tp,
+            grossEarnings: gross,
+          };
+        });
+
+      // Song ownership: only include songs with < 100% team percentage
+      const songOwnership = songEarnings
+        .filter(s => s.teamPercentage < 100)
+        .map(s => ({
+          title: s.title,
+          isrc: s.isrc,
+          teamPercentage: s.teamPercentage,
+          grossEarnings: s.grossEarnings,
+          yourEarnings: s.earnings,
+          streams: s.streams,
         }));
 
       const countryBreakdown = Array.from(countryMap.entries())
@@ -260,9 +292,11 @@ export async function GET(
         totalStreams,
         dateRange: [minMonth, maxMonth],
         artistName: artist.name,
+        avgTeamPercentage,
         monthlyRevenue,
         platformBreakdown,
         songEarnings,
+        songOwnership,
         countryBreakdown,
       };
     }

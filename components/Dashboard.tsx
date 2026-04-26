@@ -123,7 +123,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const songs = useMemo(() => data ? computeSongAggregations(data, filters) : [], [data, filters]);
   const releases = useMemo(() => data ? computeReleaseGroupAggregations(data, filters) : [], [data, filters]);
   const growth = useMemo(() => data ? computeGrowthMetrics(data) : null, [data]);
-  const deal = useMemo(() => data ? computeDealInsights(data, filters, dealConfig) : null, [data, filters, dealConfig]);
+  const deal = useMemo(() => data ? computeDealInsights(data, filters, dealConfig, distrokid) : null, [data, filters, dealConfig, distrokid]);
   const catalog = useMemo(() => data ? computeCatalogComposition(data, filters) : null, [data, filters]);
   const timeline = useMemo(() => data ? computeArtistTimeline(data) : [], [data]);
 

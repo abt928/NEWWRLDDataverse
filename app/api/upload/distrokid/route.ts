@@ -38,6 +38,7 @@ interface DKEntry {
   country: string;
   quantity: number;
   earnings: number;
+  teamPercentage: number;
 }
 
 export async function POST(req: NextRequest) {
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
       country: e.country || '',
       quantity: e.quantity || 0,
       earnings: e.earnings || 0,
+      teamPercentage: e.teamPercentage ?? 100,
     }));
 
     const result = await prisma.distroKidMonthly.createMany({

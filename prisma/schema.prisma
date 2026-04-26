@@ -225,6 +225,7 @@ model DistroKidMonthly {
   country   String  @default("")
   quantity  Int
   earnings  Float
+  teamPercentage Float @default(100)
 
   @@unique([artistId, saleMonth, store, title, isrc, country])
   @@index([artistId])
