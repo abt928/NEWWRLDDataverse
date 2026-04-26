@@ -2493,3 +2493,506 @@ a:focus-visible {
   body { background: #fff; color: #111; }
   .chart-card, .kpi-card, .stat-card { box-shadow: none; border: 1px solid #ddd; }
 }
+
+/* ================================================================
+   Songcash Offer Badge & Card
+   ================================================================ */
+.offer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  animation: offerPulse 2s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+.offer-badge::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+@keyframes offerPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.3); }
+  50% { opacity: 0.85; box-shadow: 0 0 12px 4px rgba(59, 130, 246, 0.15); }
+}
+
+.artist-card.offer-card {
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(59, 130, 246, 0.1);
+}
+
+.artist-card.offer-card:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(59, 130, 246, 0.15);
+}
+
+.card-lead-contact {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  font-size: 0.72rem;
+  color: #60a5fa;
+}
+
+.card-lead-contact span:first-child {
+  font-weight: 600;
+}
+
+/* Pipeline offer column */
+.pipeline-column[data-stage="offer"] .pipeline-column-title { color: #3b82f6; }
+.pipeline-column[data-stage="offer"] .pipeline-column-header { border-bottom-color: rgba(59, 130, 246, 0.2); }
+.stage-dropdown-dot[data-stage="offer"] { background: #3b82f6; }
+
+/* ================================================================
+   Offer Review Page
+   ================================================================ */
+.offer-review-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem clamp(1rem, 3vw, 3rem);
+  min-height: 100vh;
+}
+
+.offer-loading, .offer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1rem;
+  color: var(--text-tertiary);
+}
+
+.offer-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.offer-back {
+  font-size: 0.82rem;
+}
+
+.offer-header-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.offer-header-info h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.offer-status-badge {
+  padding: 0.2rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.offer-status-badge.status-new {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.offer-status-badge.status-reviewing {
+  background: rgba(34, 211, 238, 0.15);
+  color: #22d3ee;
+}
+
+.offer-status-badge.status-offered {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.offer-status-badge.status-closed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.offer-header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Contact Card */
+.offer-contact-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.offer-contact-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.offer-contact-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.offer-contact-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.offer-contact-link {
+  color: #6366f1;
+  text-decoration: none;
+}
+
+.offer-contact-link:hover {
+  text-decoration: underline;
+}
+
+/* Side-by-Side Comparison */
+.offer-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 900px) {
+  .offer-comparison { grid-template-columns: 1fr; }
+}
+
+.offer-column {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.offer-column-artist {
+  border-color: rgba(255, 255, 255, 0.08);
+  opacity: 0.85;
+}
+
+.offer-column-internal {
+  border-color: rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.05);
+}
+
+.offer-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.offer-column-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.offer-column-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+}
+
+.offer-delta {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.2rem 0.65rem;
+  border-radius: 6px;
+}
+
+.offer-delta.delta-up {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.offer-delta.delta-down {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* Deal Summary */
+.offer-total-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.offer-total-bar-internal {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.04));
+  border: 1px solid rgba(99, 102, 241, 0.12);
+}
+
+.offer-total-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.offer-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.offer-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
+}
+
+.offer-detail-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.offer-detail span:last-child {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.offer-no-data {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+/* Payment Schedule */
+.offer-payment-schedule {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.offer-payment-schedule h4 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.75rem 0;
+}
+
+.offer-sched-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.offer-sched-item:last-child { border-bottom: none; }
+.offer-sched-item span:last-child { font-weight: 600; color: var(--text-primary); }
+
+/* Interactive Controls */
+.offer-ctrl {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.offer-ctrl:last-child { border-bottom: none; }
+
+.offer-ctrl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.offer-ctrl-header span:last-child {
+  color: #6366f1;
+  font-weight: 700;
+}
+
+.offer-ctrl-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.offer-ctrl-slider label {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+.offer-ctrl-slider input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.offer-ctrl-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6366f1;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+}
+
+.offer-toggle-row {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.offer-toggle {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.offer-toggle:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  color: var(--text-secondary);
+}
+
+.offer-toggle.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: #6366f1;
+  color: #818cf8;
+}
+
+.offer-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.offer-check input[type="checkbox"] {
+  accent-color: #6366f1;
+}
+
+/* KPIs */
+.offer-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.offer-kpi {
+  text-align: center;
+}
+
+.offer-kpi-val {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.offer-kpi span:last-child {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Notes */
+.offer-notes {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.offer-notes h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+}
+
+.offer-notes textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.offer-notes textarea:focus {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.offer-toggle-row-sub {
+  margin-top: 8px;
+}
+
+.offer-ctrl-slider-sub {
+  margin-top: 8px;
+}

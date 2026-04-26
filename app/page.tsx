@@ -31,9 +31,13 @@ interface ArtistCard {
   hasDK?: boolean;
   hasWeekly?: boolean;
   hasLuminate?: boolean;
+  source?: string;
+  leadId?: string | null;
+  leadContact?: { id: string; name: string; email: string; status: string; createdAt: string } | null;
 }
 
 const STAGE_OPTIONS = [
+  { id: 'offer', label: 'New Offer', color: '#3b82f6' },
   { id: 'research', label: 'Research', color: '#818cf8' },
   { id: 'review', label: 'Under Review', color: '#22d3ee' },
   { id: 'negotiation', label: 'In Negotiation', color: '#f59e0b' },
@@ -432,14 +436,23 @@ export default function HomePage() {
       ) : (
         <div className="artist-grid">
           {filtered.map((a) => (
-            <div key={a.id} className="artist-card" onClick={() => window.location.href = `/artist/${a.id}`}>
+            <div key={a.id} className={`artist-card ${a.source === 'songcash' && a.pipelineStage === 'offer' ? 'offer-card' : ''}`} onClick={() => window.location.href = a.leadId ? `/artist/${a.id}/offer` : `/artist/${a.id}`}>
               <div className="card-top">
                 <div>
                   <h3 className="card-name">{a.name}</h3>
                   <span className="card-genre">{a.genre || 'Music'}</span>
                 </div>
-                <Sparkline data={a.sparkline} />
+                {a.source === 'songcash' && a.pipelineStage === 'offer' && (
+                  <span className="offer-badge">NEW OFFER</span>
+                )}
+                {!(a.source === 'songcash' && a.pipelineStage === 'offer') && <Sparkline data={a.sparkline} />}
               </div>
+              {a.leadContact && (
+                <div className="card-lead-contact">
+                  <span>{a.leadContact.name}</span>
+                  <span>{a.leadContact.email}</span>
+                </div>
+              )}
               <DataBar artist={a} />
               <div className="card-stats">
                 {a.hasLuminate ? (
@@ -662,6 +675,7 @@ function StageDropdown({ stage, onChange }: { stage: string; onChange: (s: strin
 
 /** Pipeline / Kanban Board */
 const PIPELINE_STAGES = [
+  { id: 'offer', label: 'New Offers', emptyText: 'Incoming Songcash submissions appear here' },
   { id: 'research', label: 'Research', emptyText: 'Drag artists here to begin research' },
   { id: 'review', label: 'Under Review', emptyText: 'Artists being reviewed' },
   { id: 'negotiation', label: 'In Negotiation', emptyText: 'Active deal negotiations' },

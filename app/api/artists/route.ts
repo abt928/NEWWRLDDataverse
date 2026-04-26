@@ -28,6 +28,20 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Fetch leads separately — graceful if SongcashLead table doesn't exist yet
+    let leadsByArtist = new Map<string, { id: string; name: string; email: string; status: string; createdAt: string }>();
+    try {
+      const leads = await (prisma as any).songcashLead.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, artistId: true, name: true, email: true, status: true, createdAt: true },
+      });
+      for (const lead of leads) {
+        if (!leadsByArtist.has(lead.artistId)) {
+          leadsByArtist.set(lead.artistId, lead);
+        }
+      }
+    } catch { /* SongcashLead table may not exist yet — that's OK */ }
+
     // Batch-query geo data: which artists have non-Worldwide weekly entries?
     const geoArtists = await prisma.artistWeekly.groupBy({
       by: ['artistId'],
@@ -136,6 +150,9 @@ export async function GET() {
         hasDK,
         hasWeekly,
         hasLuminate,
+        source: (artist as any).source || 'internal',
+        leadId: leadsByArtist.get(artist.id)?.id || null,
+        leadContact: leadsByArtist.get(artist.id) || null,
       };
     });
 

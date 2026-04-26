@@ -110,7 +110,9 @@ model Artist {
   uploads             ArtistUpload[]
   pinnedMetrics       PinnedMetric[]
   shareLinks          ShareLink[]
+  leads               SongcashLead[]
   pipelineStage       String             @default("research")
+  source              String             @default("internal")
   luminateUploadedAt  DateTime?
   distrokidUploadedAt DateTime?
   createdAt           DateTime           @default(now())
@@ -256,4 +258,27 @@ model ShareLink {
   token     String    @unique @default(cuid())
   expiresAt DateTime?
   createdAt DateTime  @default(now())
+}
+
+// ============================================================
+// Songcash Leads
+// ============================================================
+
+model SongcashLead {
+  id         String   @id @default(cuid())
+  artistId   String
+  artist     Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  name       String
+  email      String
+  phone      String   @default("")
+  spotifyUrl String   @default("")
+  dealConfig Json     @default("{}")
+  dealOutput Json     @default("{}")
+  status     String   @default("new")
+  notes      String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([artistId])
+  @@index([status])
 }
