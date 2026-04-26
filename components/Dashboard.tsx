@@ -2,8 +2,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { signIn as passkeySignIn } from 'next-auth/webauthn';
-import type { LuminateDataset, DistroKidDataset, FilterState } from '@/lib/types';
-import { defaultFilters, computeOverviewKPIs, computeSongAggregations, computeReleaseGroupAggregations, computeGrowthMetrics, computeDealInsights, computeCatalogComposition, computeArtistTimeline } from '@/lib/analytics';
+import type { LuminateDataset, DistroKidDataset, FilterState, DealConfig } from '@/lib/types';
+import { defaultFilters, defaultDealConfig, computeOverviewKPIs, computeSongAggregations, computeReleaseGroupAggregations, computeGrowthMetrics, computeDealInsights, computeCatalogComposition, computeArtistTimeline } from '@/lib/analytics';
 import OverviewPanel from './panels/OverviewPanel';
 import ArtistTimelinePanel from './panels/ArtistTimelinePanel';
 import ReleaseTablePanel from './panels/ReleaseTablePanel';
@@ -14,7 +14,7 @@ import GrowthPanel from './panels/GrowthPanel';
 import DealPanel from './panels/DealPanel';
 import RevenuePanel from './panels/RevenuePanel';
 import CpmPanel from './panels/CpmPanel';
-import FilterBar from './FilterBar';
+import CommandBar from './CommandBar';
 import GeoPanel from './panels/GeoPanel';
 import DataIntegrityPanel from './panels/DataIntegrityPanel';
 import { ReportProvider, useReport, METRIC_LABELS } from './ReportContext';
@@ -116,13 +116,14 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
   const defaultPanel = hasLuminate ? 'overview' : 'revenue';
   const [active, setActive] = useState(defaultPanel);
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
+  const [dealConfig, setDealConfig] = useState<DealConfig>(defaultDealConfig);
   const [copied, setCopied] = useState(false);
 
-  const kpis = useMemo(() => data ? computeOverviewKPIs(data) : null, [data]);
+  const kpis = useMemo(() => data ? computeOverviewKPIs(data, filters) : null, [data, filters]);
   const songs = useMemo(() => data ? computeSongAggregations(data, filters) : [], [data, filters]);
   const releases = useMemo(() => data ? computeReleaseGroupAggregations(data, filters) : [], [data, filters]);
   const growth = useMemo(() => data ? computeGrowthMetrics(data) : null, [data]);
-  const deal = useMemo(() => data ? computeDealInsights(data, filters) : null, [data, filters]);
+  const deal = useMemo(() => data ? computeDealInsights(data, filters, dealConfig) : null, [data, filters, dealConfig]);
   const catalog = useMemo(() => data ? computeCatalogComposition(data, filters) : null, [data, filters]);
   const timeline = useMemo(() => data ? computeArtistTimeline(data) : [], [data]);
 
@@ -255,12 +256,12 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
               <div className="sidebar-user-email">{session.user.email}</div>
             </div>
             <button className="sidebar-passkey" onClick={() => passkeySignIn('passkey', { action: 'register' })} title="Register passkey">Key</button>
-            <button className="sidebar-signout" onClick={() => signOut()} title="Sign out">⏻</button>
+            <button className="sidebar-signout" onClick={() => signOut()} title="Sign out">Out</button>
           </div>
         )}
       </aside>
       <main className="main-content" role="tabpanel">
-        {hasLuminate && <FilterBar filters={filters} onChange={setFilters} />}
+        <CommandBar activePanel={active} filters={filters} onChange={setFilters} />
         <div className="panel-enter" key={active}>
         {active === 'overview' && (kpis && growth ? <OverviewPanel kpis={kpis} growth={growth} timeline={timeline} distrokid={distrokid} uploads={uploads} luminateUploadedAt={luminateUploadedAt} distrokidUploadedAt={distrokidUploadedAt} /> : <EmptyState source="Luminate (.xlsx)" label="Streaming" />)}
         {active === 'contracts' && <UpsellPanel type="contracts" />}
@@ -273,7 +274,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'growth' && (growth && kpis ? <GrowthPanel growth={growth} kpis={kpis} /> : <EmptyState source="Luminate (.xlsx)" label="Growth" />)}
         {active === 'cpm' && <CpmPanel artistId={artistId} entries={revenueEntries} onUpdate={setRevenueEntries} data={data} />}
         {active === 'revenue' && (distrokid ? <RevenuePanel data={distrokid} /> : <EmptyState source="DistroKid (.zip)" label="Revenue" />)}
-        {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} filters={filters} onChange={setFilters} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
+        {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx)" label="Deal" />)}
         {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
         {active === 'integrity' && <DataIntegrityPanel dataCoverage={dataCoverage} uploads={uploads} distrokid={distrokid} />}
         </div>

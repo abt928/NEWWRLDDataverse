@@ -1,7 +1,7 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
-import type { DealInsights, OverviewKPIs, FilterState, MonthlyEarning, DistroKidDataset, LuminateDataset } from '@/lib/types';
+import type { DealInsights, OverviewKPIs, DistroKidDataset, LuminateDataset, MonthlyEarning } from '@/lib/types';
 import { formatNumber, formatCurrency, formatPct } from '@/lib/utils';
 import PinButton from '../PinButton';
 
@@ -13,8 +13,8 @@ function formatCompact(n: number): string {
   return '$' + n.toFixed(0);
 }
 
-export default function DealPanel({ deal, kpis, filters, onChange, distrokid, manualRevenue = [], luminateData }: {
-  deal: DealInsights; kpis: OverviewKPIs; filters: FilterState; onChange: (f: FilterState) => void;
+export default function DealPanel({ deal, kpis, distrokid, manualRevenue = [], luminateData }: {
+  deal: DealInsights; kpis: OverviewKPIs;
   distrokid?: DistroKidDataset; manualRevenue?: ManualRevenueEntry[]; luminateData?: LuminateDataset;
 }) {
   // --- CPM Priority: Manual CPM Calculator > DK > Default ---
@@ -187,17 +187,19 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
     };
   }, [activeCpm, currentAnnualStreams, decayRate, acquisitionCost]);
 
+  const [localEarnings, setLocalEarnings] = useState<MonthlyEarning[]>([]);
+
   const addEarning = () => {
     if (!newMonth || !newAmount || Number(newAmount) <= 0) return;
-    const earnings = [...filters.actualEarnings, { month: newMonth, amount: Number(newAmount) }];
+    const earnings = [...localEarnings, { month: newMonth, amount: Number(newAmount) }];
     const map = new Map<string, MonthlyEarning>();
     for (const e of earnings) map.set(e.month, e);
     const sorted = Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
-    onChange({ ...filters, actualEarnings: sorted });
+    setLocalEarnings(sorted);
     setNewMonth(''); setNewAmount('');
   };
   const removeEarning = (month: string) => {
-    onChange({ ...filters, actualEarnings: filters.actualEarnings.filter((e) => e.month !== month) });
+    setLocalEarnings(localEarnings.filter((e) => e.month !== month));
   };
 
   const FanTooltip = ({ active, payload, label }: any) => {
@@ -244,7 +246,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
       </div>
 
       <div className="panel-summary">
-        {deal.growthClassification === 'Accelerating' ? '✓ Strong upward momentum' : deal.growthClassification === 'Stable' ? '→ Stable trajectory' : '⚠ Declining trend'} — {formatCurrency(deal.revenueEstimateLow)}–{formatCurrency(deal.revenueEstimateHigh)} est. annual revenue at ${filters.cpmLow.toFixed(2)}–${filters.cpmHigh.toFixed(2)} CPM. {decayRate}% modeled decay. Top song holds {Math.round(deal.topSongShare)}% of catalog. {activeCpm !== null ? `Calibrated CPM: $${activeCpm.toFixed(2)}.` : ''}
+        {deal.growthClassification === 'Accelerating' ? '✓ Strong upward momentum' : deal.growthClassification === 'Stable' ? '→ Stable trajectory' : '⚠ Declining trend'} — {formatCurrency(deal.revenueEstimateLow)}–{formatCurrency(deal.revenueEstimateHigh)} est. annual revenue. {decayRate}% modeled decay. Top song holds {Math.round(deal.topSongShare)}% of catalog. {activeCpm !== null ? `Calibrated CPM: $${activeCpm.toFixed(2)}.` : ''}
       </div>
 
       <div className="deal-grid">
@@ -255,7 +257,7 @@ export default function DealPanel({ deal, kpis, filters, onChange, distrokid, ma
           <div className="deal-value">{formatCurrency(deal.revenueEstimateLow)} – {formatCurrency(deal.revenueEstimateHigh)}</div>
           <div className="deal-sub">Based on {formatNumber(deal.estimatedAnnualStreams)} projected annual streams</div>
           <div className="deal-sub deal-rate-info">
-            CPM: ${filters.cpmLow.toFixed(2)} – ${filters.cpmHigh.toFixed(2)} per 1K streams
+            CPM range applied via Deal Intelligence defaults
           </div>
         </div>
 

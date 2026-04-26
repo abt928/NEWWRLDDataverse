@@ -190,7 +190,11 @@ export interface FilterState {
   releaseType: 'All' | 'Single' | 'Album';
   artistFilter: 'all' | 'primary' | 'features';
   minStreams: number;
-  cpmLow: number;   // Cost Per Mille ($ per 1,000 streams)
+}
+
+/** Deal-specific configuration (owned by DealPanel, not global filters) */
+export interface DealConfig {
+  cpmLow: number;
   cpmHigh: number;
   actualEarnings: MonthlyEarning[];
 }

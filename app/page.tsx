@@ -399,7 +399,7 @@ export default function HomePage() {
           </div>
           {session?.user && (
             <button className="btn-secondary" onClick={() => signOut()} title="Sign out">
-              ⏻
+              Sign Out
             </button>
           )}
         </div>
@@ -477,10 +477,10 @@ export default function HomePage() {
               </div>
               <div className="card-footer">
                 <span>
-                  {a.songCount > 0 ? `${a.songCount} songs` : ''}
+                  {a.songCount > 0 ? `${a.songCount} ${a.songCount === 1 ? 'song' : 'songs'}` : ''}
                   {a.songCount > 0 && a.releaseCount > 0 ? ' · ' : ''}
-                  {a.releaseCount > 0 ? `${a.releaseCount} releases` : ''}
-                  {a.hasDK && !a.hasLuminate && a.totalEarnings > 0 ? `$${a.totalEarnings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} revenue` : ''}
+                  {a.releaseCount > 0 ? `${a.releaseCount} ${a.releaseCount === 1 ? 'release' : 'releases'}` : ''}
+                  {a.hasDK && !a.hasLuminate && a.totalEarnings > 0 ? `${a.songCount > 0 || a.releaseCount > 0 ? ' · ' : ''}$${a.totalEarnings.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} revenue` : ''}
                   {!a.songCount && !a.releaseCount && !a.hasDK ? 'No data yet' : ''}
                 </span>
                 <StageDropdown

@@ -7,6 +7,7 @@ import type {
   DealInsights,
   CatalogComposition,
   FilterState,
+  DealConfig,
 } from './types';
 
 // ============================================================
@@ -25,12 +26,24 @@ function getStartDate(dateRange: string): string {
   return dateRange.split(' - ')[0]?.replace(/\//g, '-') ?? '';
 }
 
+/** Convert YYYY-MM to comparable YYYY/MM format */
+function filterRowByDateRange<T extends { dateRange: string }>(rows: T[], range: [string, string] | null): T[] {
+  if (!range) return rows;
+  const [startFilter, endFilter] = range; // YYYY-MM format
+  return rows.filter(row => {
+    const startDate = getStartDate(row.dateRange); // YYYY-MM-DD format
+    const rowMonth = startDate.slice(0, 7); // YYYY-MM
+    return rowMonth >= startFilter && rowMonth <= endFilter;
+  });
+}
+
 // ============================================================
 // Overview KPIs
 // ============================================================
 
-export function computeOverviewKPIs(data: LuminateDataset): OverviewKPIs {
-  const sorted = sortByDate(data.artistWeekly);
+export function computeOverviewKPIs(data: LuminateDataset, filters?: FilterState): OverviewKPIs {
+  const filtered = filters?.dateRange ? filterRowByDateRange(data.artistWeekly, filters.dateRange) : data.artistWeekly;
+  const sorted = sortByDate(filtered);
   const mostRecent = sorted[sorted.length - 1];
 
   const totalATD = mostRecent?.atd ?? sorted.reduce((sum, r) => sum + r.quantity, 0);
@@ -320,7 +333,8 @@ export function computeGrowthMetrics(data: LuminateDataset): GrowthMetrics {
 
 export function computeDealInsights(
   data: LuminateDataset,
-  filters: FilterState
+  filters: FilterState,
+  dealConfig: DealConfig
 ): DealInsights {
   const sorted = sortByDate(data.artistWeekly);
   const songs = computeSongAggregations(data, { ...filters, minStreams: 0 });
@@ -396,18 +410,18 @@ export function computeDealInsights(
   // Revenue estimates using CPM (cost per mille = $ per 1000 streams)
   const mostRecent = sorted[sorted.length - 1];
   const atd = mostRecent?.atd ?? sorted.reduce((s, r) => s + r.quantity, 0);
-  const revenueEstimateLow = (estimatedAnnualStreams / 1000) * filters.cpmLow;
-  const revenueEstimateHigh = (estimatedAnnualStreams / 1000) * filters.cpmHigh;
+  const revenueEstimateLow = (estimatedAnnualStreams / 1000) * dealConfig.cpmLow;
+  const revenueEstimateHigh = (estimatedAnnualStreams / 1000) * dealConfig.cpmHigh;
 
   // Calculate effective CPM from actual monthly earnings
   let effectiveCpm: number | null = null;
   let revenueFromActuals: number | null = null;
-  if (filters.actualEarnings.length > 0) {
+  if (dealConfig.actualEarnings.length > 0) {
     // For each month with earnings, find the corresponding streams
     let totalEarnings = 0;
     let totalStreamsForEarningMonths = 0;
 
-    for (const entry of filters.actualEarnings) {
+    for (const entry of dealConfig.actualEarnings) {
       if (entry.amount <= 0) continue;
       totalEarnings += entry.amount;
       // Find streams for this month from artist weekly data
@@ -569,7 +583,10 @@ export const defaultFilters: FilterState = {
   releaseType: 'All',
   artistFilter: 'all',
   minStreams: 0,
-  cpmLow: 3.0,    // $3.00 CPM (= $0.003 per stream)
-  cpmHigh: 5.0,   // $5.00 CPM (= $0.005 per stream)
+};
+
+export const defaultDealConfig: DealConfig = {
+  cpmLow: 3.0,
+  cpmHigh: 5.0,
   actualEarnings: [],
 };

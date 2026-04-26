@@ -82,7 +82,11 @@ export default function DataIntegrityPanel({ dataCoverage, uploads, distrokid }:
       {/* Panel Header */}
       <div className="panel-header">
         <h2>Data Integrity</h2>
-        <p className="panel-subtitle">Coverage analysis across all uploaded data sources</p>
+        <p>Coverage analysis across all uploaded data sources</p>
+      </div>
+
+      <div className="panel-summary">
+        {dataCoverage.length + (distrokid ? 1 : 0)} data source{dataCoverage.length + (distrokid ? 1 : 0) !== 1 ? 's' : ''} ingested spanning {totalWeeks} weeks. {totalGaps === 0 ? 'No gaps detected — continuous timeline.' : `${totalGaps} gap${totalGaps > 1 ? 's' : ''} found (${totalMissingWeeks} weeks missing).`}
       </div>
 
       {/* Summary KPIs */}

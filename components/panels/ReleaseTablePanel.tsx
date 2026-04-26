@@ -39,6 +39,9 @@ export default function ReleaseTablePanel({ releases }: { releases: ReleaseGroup
         <h2>Release Performance</h2>
         <p>{releases.length} releases sorted by {sortBy}</p>
       </div>
+      <div className="panel-summary">
+        {releases.length} releases tracked. {releases.filter(r => r.decayRate > 5).length} growing, {releases.filter(r => r.decayRate < -5).length} declining, {releases.filter(r => r.decayRate >= -5 && r.decayRate <= 5).length} stable. Click column headers to sort.
+      </div>
       <div className="chart-card">
         <div className="data-table-wrap">
           <table className="data-table">

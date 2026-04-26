@@ -42,6 +42,10 @@ export default function SongTrendsPanel({ songs }: { songs: SongAggregated[] }) 
         <p>Compare up to 5 songs side by side</p>
       </div>
 
+      <div className="panel-summary">
+        Select up to 5 songs from the top 10 to visualize weekly streaming trajectories side by side.
+      </div>
+
       <div className="song-selector">
         {top10.map((s) => (
           <button key={s.luminateId} className={`song-chip ${selected.includes(s.luminateId) ? 'selected' : ''}`}

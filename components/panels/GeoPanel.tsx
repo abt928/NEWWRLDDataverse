@@ -130,7 +130,12 @@ export default function GeoPanel({ geoBreakdown, geoSummary, activeCpm }: GeoPan
   }
 
   return (
-    <>
+    <div>
+      <div className="panel-header">
+        <h2>Geographic Intelligence</h2>
+        <p>Regional streaming distribution and market share analysis</p>
+      </div>
+
       {/* KPI Cards */}
       <div className="kpi-grid">
         <div className="kpi-card">
@@ -292,6 +297,6 @@ export default function GeoPanel({ geoBreakdown, geoSummary, activeCpm }: GeoPan
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }

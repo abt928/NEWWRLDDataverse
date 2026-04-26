@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import type { LuminateDataset } from '@/lib/types';
-import { computeOverviewKPIs, computeGrowthMetrics, computeDealInsights, computeArtistTimeline, defaultFilters } from '@/lib/analytics';
+import { computeOverviewKPIs, computeGrowthMetrics, computeDealInsights, computeArtistTimeline, defaultFilters, defaultDealConfig } from '@/lib/analytics';
 import { formatNumber, formatCurrency, formatPct, getChartColor } from '@/lib/utils';
 
 interface ArtistAnalysis {
@@ -35,7 +35,7 @@ function CompareContent() {
             data,
             kpis: computeOverviewKPIs(data),
             growth: computeGrowthMetrics(data),
-            deal: computeDealInsights(data, defaultFilters),
+            deal: computeDealInsights(data, defaultFilters, defaultDealConfig),
             timeline: computeArtistTimeline(data),
           });
         } catch { /* skip */ }

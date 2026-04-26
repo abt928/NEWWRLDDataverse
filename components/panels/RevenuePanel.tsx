@@ -83,6 +83,10 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
         <p>Actual earnings from DistroKid — {data.dateRange[0]} to {data.dateRange[1]}</p>
       </div>
 
+      <div className="panel-summary">
+        {formatCurrency(data.totalEarnings)} total earnings across {data.platformBreakdown.length} platforms. Blended CPM (AM + Spotify): ${blendedCpm}. Avg monthly: {formatCurrency(avgMonthly)}{trendPct !== 0 ? ` (${trendPct > 0 ? '+' : ''}${Math.round(trendPct)}% 3mo trend)` : ''}.
+      </div>
+
       {/* KPI Cards */}
       <div className="kpi-grid">
         <div className="stat-card highlight animate-in">
@@ -134,13 +138,13 @@ export default function RevenuePanel({ data }: { data: DistroKidDataset }) {
             </defs>
             <XAxis
               dataKey="month"
-              tick={{ fill: '#707070', fontSize: 11 }}
+              tick={{ fill: '#5a5c72', fontSize: 11 }}
               tickLine={false}
-              axisLine={{ stroke: '#1c1c1f' }}
+              axisLine={{ stroke: 'rgba(30,30,34,1)' }}
               interval={Math.max(0, Math.floor(data.monthlyRevenue.length / 8))}
             />
             <YAxis
-              tick={{ fill: '#707070', fontSize: 11 }}
+              tick={{ fill: '#5a5c72', fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v: number) => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'K' : v}`}

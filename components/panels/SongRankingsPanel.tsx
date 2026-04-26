@@ -33,6 +33,9 @@ export default function SongRankingsPanel({ songs }: { songs: SongAggregated[] }
         <h2>Song Rankings</h2>
         <p>{songs.length} songs • Showing {display.length}</p>
       </div>
+      <div className="panel-summary">
+        {songs.filter(s => s.trend === 'up').length} songs trending up, {songs.filter(s => s.trend === 'down').length} declining. Click column headers to sort by any metric.
+      </div>
       <div className="chart-card">
         <div className="data-table-wrap">
           <table className="data-table">

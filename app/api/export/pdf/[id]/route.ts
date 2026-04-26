@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import type { LuminateDataset } from '@/lib/types';
-import { computeOverviewKPIs, computeSongAggregations, computeGrowthMetrics, computeDealInsights, defaultFilters } from '@/lib/analytics';
+import { computeOverviewKPIs, computeSongAggregations, computeGrowthMetrics, computeDealInsights, defaultFilters, defaultDealConfig } from '@/lib/analytics';
 import { formatNumber, formatCurrency, formatPct } from '@/lib/utils';
 
 // Reconstruct dataset from DB (same logic as artist detail API)
@@ -54,7 +54,7 @@ export async function GET(
 
     const kpis = computeOverviewKPIs(data);
     const growth = computeGrowthMetrics(data);
-    const deal = computeDealInsights(data, defaultFilters);
+    const deal = computeDealInsights(data, defaultFilters, defaultDealConfig);
     const songs = computeSongAggregations(data, defaultFilters);
 
     // Generate CSV-like report (easily importable)
