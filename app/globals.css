@@ -3254,3 +3254,101 @@ a:focus-visible {
   letter-spacing: -0.02em;
 }
 
+/* ── Settings Button & Drawer ── */
+.calc-panel-section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.calc-panel-section-title-row .calc-panel-section-title { margin-bottom: 0; }
+.calc-panel-settings-btn {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.calc-panel-settings-btn:hover,
+.calc-panel-settings-btn.active {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #818cf8;
+}
+.calc-panel-settings {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  animation: slideDown 0.2s ease;
+}
+.calc-panel-settings h4 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #818cf8;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.calc-panel-settings-info {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+.calc-panel-empty-link {
+  display: inline-block;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Acquisition Modeling Section ── */
+.calc-panel-acq {
+  margin-top: 2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+.calc-panel-acq-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.calc-panel-acq-header .calc-panel-section-title { margin-bottom: 0; }
+.calc-panel-acq-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  border-radius: 20px;
+  color: #a5b4fc;
+}
+.calc-panel-roi {
+  margin-top: 1.5rem;
+}
+.calc-panel-roi h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+.fan-chart-legend .fan-legend-line[data-color="hist"] { background: #818cf8; }
+.fan-chart-legend .fan-legend-line[data-color="opt"] { background: #34d399; }
+.fan-chart-legend .fan-legend-line[data-color="base"] { background: #6366f1; }
+.fan-chart-legend .fan-legend-line[data-color="pess"] { background: #f59e0b; }
+.fan-chart-legend .fan-legend-line[data-color="severe"] { background: #f87171; }
+
