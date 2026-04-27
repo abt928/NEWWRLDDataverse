@@ -143,7 +143,7 @@ export async function GET() {
         luminateUploadedAt: artist.luminateUploadedAt,
         distrokidUploadedAt: artist.distrokidUploadedAt,
         createdAt: artist.createdAt,
-        pipelineStage: artist.pipelineStage || 'research',
+        pipelineStage: (artist as any).pipelineStage || 'research',
         hasQBR,
         hasTrends,
         hasGeo,

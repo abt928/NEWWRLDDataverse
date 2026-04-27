@@ -20,8 +20,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const artist = await prisma.artist.update({
       where: { id },
-      data: { pipelineStage: stage },
-      select: { id: true, name: true, pipelineStage: true },
+      data: { pipelineStage: stage } as any,
+      select: { id: true, name: true, pipelineStage: true } as any,
     });
 
     return NextResponse.json(artist);

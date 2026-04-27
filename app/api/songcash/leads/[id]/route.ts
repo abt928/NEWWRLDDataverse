@@ -14,7 +14,7 @@ export async function GET(
 
   const { id } = await params;
 
-  const lead = await prisma.songcashLead.findUnique({
+  const lead = await (prisma as any).songcashLead.findUnique({
     where: { id },
     include: {
       artist: {
@@ -54,16 +54,16 @@ export async function PATCH(
 
   // Also update artist pipeline stage if status changes
   if (body.status === 'offered') {
-    const lead = await prisma.songcashLead.findUnique({ where: { id } });
+    const lead = await (prisma as any).songcashLead.findUnique({ where: { id } });
     if (lead) {
       await prisma.artist.update({
         where: { id: lead.artistId },
-        data: { pipelineStage: 'negotiation' },
+        data: { pipelineStage: 'negotiation' } as any,
       });
     }
   }
 
-  const updated = await prisma.songcashLead.update({
+  const updated = await (prisma as any).songcashLead.update({
     where: { id },
     data: updateData,
   });

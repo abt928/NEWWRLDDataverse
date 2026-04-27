@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const leads = await prisma.songcashLead.findMany({
+  const leads = await (prisma as any).songcashLead.findMany({
     include: {
       artist: {
         select: {
@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest) {
   if (internalDealConfig !== undefined) updateData.dealConfig = internalDealConfig;
   if (internalDealOutput !== undefined) updateData.dealOutput = internalDealOutput;
 
-  const lead = await prisma.songcashLead.update({
+  const lead = await (prisma as any).songcashLead.update({
     where: { id },
     data: updateData,
   });

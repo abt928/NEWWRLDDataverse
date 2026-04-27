@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
           distrokidUploadedAt: new Date(),
           source: 'songcash',
           pipelineStage: 'offer',
-        },
+        } as any,
       });
     } else {
       artist = await prisma.artist.create({
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
           distrokidUploadedAt: new Date(),
           source: 'songcash',
           pipelineStage: 'offer',
-        },
+        } as any,
       });
     }
 
@@ -128,15 +128,15 @@ export async function POST(req: NextRequest) {
     // ── Create Lead if contact info provided ──
     let leadId: string | null = null;
     if (contactName && contactEmail) {
-      const lead = await prisma.songcashLead.create({
+      const lead = await (prisma as any).songcashLead.create({
         data: {
           artistId: artist.id,
           name: contactName,
           email: contactEmail,
           phone: contactPhone || '',
           spotifyUrl: spotifyUrl || '',
-          dealConfig: dealConfig || {},
-          dealOutput: dealOutput || {},
+          dealConfig: (dealConfig || {}) as any,
+          dealOutput: (dealOutput || {}) as any,
           status: 'new',
         },
       });
