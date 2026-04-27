@@ -17,6 +17,7 @@ import CpmPanel from './panels/CpmPanel';
 import CommandBar from './CommandBar';
 import GeoPanel from './panels/GeoPanel';
 import DataIntegrityPanel from './panels/DataIntegrityPanel';
+import OfferCalculatorPanel from './panels/OfferCalculatorPanel';
 import { ReportProvider, useReport, METRIC_LABELS } from './ReportContext';
 
 interface NavItem {
@@ -38,6 +39,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   { id: 'cpm', label: 'CPM Calculator', icon: '≡' },
   { id: 'revenue', label: 'Revenue & Platforms', icon: '$', source: 'distrokid' },
   { id: 'deal', label: 'Deal Intelligence', icon: '▲' },
+  { id: 'offercalc', label: 'Offer Calculator', icon: '◈' },
   { id: 'integrity', label: 'Data Integrity', icon: '⊘' },
   { id: 'contracts', label: 'Contract System', icon: '⚖' },
   { id: 'outreach', label: 'Artist Outreach', icon: '✉' },
@@ -199,7 +201,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
             </li>
           ))}
           <li className="nav-section" role="presentation">Business</li>
-          {navItems.filter(i => ['cpm','revenue','deal','integrity'].includes(i.id)).map((item) => (
+          {navItems.filter(i => ['cpm','revenue','deal','offercalc','integrity'].includes(i.id)).map((item) => (
             <li key={item.id} role="presentation">
               <button
                 role="tab"
@@ -277,6 +279,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : distrokid ? <DealPanel deal={null as any} kpis={null as any} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx) or DistroKid (.zip)" label="Deal" />)}
         {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
         {active === 'integrity' && <DataIntegrityPanel dataCoverage={dataCoverage} uploads={uploads} distrokid={distrokid} />}
+        {active === 'offercalc' && <OfferCalculatorPanel distrokid={distrokid} />}
         </div>
       </main>
     </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/db';
 
 /** GET /api/songcash/leads — Fetch all Songcash leads with artist info */
