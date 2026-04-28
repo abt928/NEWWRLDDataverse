@@ -25,6 +25,7 @@ model User {
   artists       Artist[]
   pinnedMetrics PinnedMetric[]
   shareLinks    ShareLink[]
+  dealShares    DealShare[]
 }
 
 model Account {
@@ -111,6 +112,7 @@ model Artist {
   pinnedMetrics       PinnedMetric[]
   shareLinks          ShareLink[]
   leads               SongcashLead[]
+  dealShares          DealShare[]
   pipelineStage       String             @default("research")
   source              String             @default("internal")
   luminateUploadedAt  DateTime?
@@ -281,4 +283,26 @@ model SongcashLead {
 
   @@index([artistId])
   @@index([status])
+}
+
+// ============================================================
+// Deal Share Links (controlled calculator for artists)
+// ============================================================
+
+model DealShare {
+  id             String    @id @default(cuid())
+  token          String    @unique @default(cuid())
+  artistId       String
+  artist         Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  createdBy      String
+  user           User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  dealConfig     Json      @default("{}")
+  unlockedFields Json      @default("[]")
+  constraints    Json      @default("{}")
+  label          String    @default("")
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([artistId])
 }

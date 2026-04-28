@@ -279,7 +279,7 @@ export default function Dashboard({ data, distrokid, onReset, artistId, luminate
         {active === 'deal' && (deal && kpis ? <DealPanel deal={deal} kpis={kpis} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : distrokid ? <DealPanel deal={null as any} kpis={null as any} distrokid={distrokid} manualRevenue={revenueEntries} luminateData={data} /> : <EmptyState source="Luminate (.xlsx) or DistroKid (.zip)" label="Deal" />)}
         {active === 'geo' && (geoBreakdown && geoSummary?.hasGeoData ? <GeoPanel geoBreakdown={geoBreakdown} geoSummary={geoSummary} activeCpm={deal ? (deal as any).cpm || null : null} /> : <EmptyState source="geo-specific Luminate (.xlsx)" label="Geographic" />)}
         {active === 'integrity' && <DataIntegrityPanel dataCoverage={dataCoverage} uploads={uploads} distrokid={distrokid} />}
-        {active === 'offercalc' && <OfferCalculatorPanel distrokid={distrokid} />}
+        {active === 'offercalc' && <OfferCalculatorPanel distrokid={distrokid} artistId={artistId} />}
         </div>
       </main>
     </div>

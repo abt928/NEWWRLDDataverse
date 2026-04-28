@@ -3352,3 +3352,455 @@ a:focus-visible {
 .fan-chart-legend .fan-legend-line[data-color="pess"] { background: #f59e0b; }
 .fan-chart-legend .fan-legend-line[data-color="severe"] { background: #f87171; }
 
+/* Share button row */
+.calc-panel-share-row {
+  padding: 1.5rem 0 0;
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: center;
+}
+.calc-panel-share-row .btn-primary {
+  padding: 0.6rem 1.5rem;
+  font-size: 0.8rem;
+}
+
+/* ============================================================
+   Deal Share — Public Artist-Facing Calculator
+   ============================================================ */
+
+.deal-share-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  padding: 0;
+}
+
+/* Loading / Error */
+.deal-share-loading, .deal-share-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  color: var(--text-secondary);
+}
+.deal-share-error-icon {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; color: #ef4444;
+}
+.deal-share-error h2 { font-size: 1.2rem; font-weight: 600; margin: 0; }
+.deal-share-error p { font-size: 0.85rem; color: var(--text-tertiary); margin: 0; }
+
+/* Header */
+.deal-share-header {
+  padding: 2rem 2.5rem 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.deal-share-header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0;
+  background: linear-gradient(135deg, #f5f5f7, #a1a1aa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.deal-share-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin: 0.3rem 0 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Hero KPI Bar */
+.deal-share-hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 2.5rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.deal-share-hero-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.2rem 2rem;
+  background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08));
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.deal-share-hero-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+.deal-share-hero-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.deal-share-hero-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.deal-share-hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.deal-share-hero-stat span:last-child {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+.deal-share-hero-stat-val {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Grid */
+.deal-share-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2.5rem 2rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 900px) {
+  .deal-share-grid { grid-template-columns: 1fr; }
+  .deal-share-hero { flex-direction: column; align-items: flex-start; }
+}
+
+/* Controls Column */
+.deal-share-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.deal-share-controls h3 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Control Block */
+.deal-share-ctrl {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.deal-share-ctrl.locked {
+  opacity: 0.55;
+}
+.deal-share-ctrl-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 500;
+  margin-bottom: 0.4rem;
+}
+.deal-share-ctrl-val {
+  font-weight: 600;
+  color: #818cf8;
+  font-size: 0.75rem;
+}
+.deal-share-lock {
+  font-size: 0.65rem;
+  margin-left: 0.5rem;
+  opacity: 0.5;
+}
+.deal-share-locked-val {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  padding: 0.3rem 0;
+}
+
+/* Slider */
+.deal-share-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.deal-share-slider label {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+}
+.deal-share-slider input[type="range"] {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.deal-share-slider input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #818cf8;
+  border: 2px solid var(--bg-primary);
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(129,140,248,0.4);
+}
+
+/* Toggles */
+.deal-share-toggles {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+.deal-share-sub { margin-top: 0.4rem; }
+.deal-share-toggle {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.deal-share-toggle:hover {
+  border-color: rgba(129,140,248,0.3);
+  color: var(--text-primary);
+}
+.deal-share-toggle.active {
+  background: rgba(99,102,241,0.15);
+  border-color: rgba(99,102,241,0.4);
+  color: #818cf8;
+  font-weight: 600;
+}
+
+/* Checkboxes */
+.deal-share-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+.deal-share-check.locked { opacity: 0.5; cursor: default; }
+.deal-share-check em { color: var(--text-tertiary); font-style: normal; }
+.deal-share-check input[type="checkbox"] {
+  accent-color: #818cf8;
+  width: 14px; height: 14px;
+}
+
+/* Breakdown Column */
+.deal-share-breakdown {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 1.2rem 1.5rem;
+  height: fit-content;
+}
+.deal-share-breakdown h3 {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Sections */
+.deal-share-section {
+  margin-bottom: 1rem;
+}
+.deal-share-section h4 {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.4rem;
+}
+.deal-share-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  padding: 0.25rem 0;
+  color: var(--text-secondary);
+}
+.deal-share-row span:last-child { font-weight: 500; color: var(--text-primary); }
+.deal-share-row-sub {
+  font-weight: 600;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 0.35rem;
+  margin-top: 0.2rem;
+}
+.deal-share-row-sub span:last-child { color: #818cf8; }
+.deal-share-row-neg span:last-child { color: #f87171; }
+
+/* Grand Total */
+.deal-share-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0 0;
+  margin-top: 0.5rem;
+  border-top: 2px solid rgba(99,102,241,0.3);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.deal-share-total span:last-child {
+  font-size: 1.3rem;
+  background: linear-gradient(135deg, #818cf8, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Footer */
+.deal-share-footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem 2.5rem 2rem;
+  text-align: center;
+}
+.deal-share-footer p {
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ============================================================
+   Deal Share Modal (internal — OfferCalculatorPanel)
+   ============================================================ */
+
+.share-deal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.share-deal-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  width: 520px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+.share-deal-modal h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+.share-deal-modal-sub {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  margin: 0 0 1rem;
+}
+.share-deal-field {
+  margin-bottom: 1rem;
+}
+.share-deal-field label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.3rem;
+}
+.share-deal-field input[type="text"],
+.share-deal-field select {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+.share-deal-unlock-title {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0 0 0.5rem;
+}
+.share-deal-unlock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  margin-bottom: 1rem;
+}
+.share-deal-unlock-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.share-deal-unlock-item:hover { background: rgba(255,255,255,0.03); }
+.share-deal-unlock-item input { accent-color: #818cf8; }
+.share-deal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  margin-top: 1rem;
+}
+.share-deal-result {
+  margin-top: 1rem;
+  padding: 0.7rem;
+  background: rgba(99,102,241,0.08);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.share-deal-result-url {
+  flex: 1;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  word-break: break-all;
+  font-family: monospace;
+}
+.share-deal-copy-btn {
+  padding: 0.35rem 0.7rem;
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 6px;
+  color: #818cf8;
+  font-size: 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.share-deal-copy-btn:hover { background: rgba(99,102,241,0.3); }

@@ -1,13 +1,29 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ComposedChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import type { DistroKidDataset } from '@/lib/types';
 import { calculateDeal, DEFAULT_INPUTS, type DealInputs, type DealOutput, type SongData, type MonthlyData } from '@/lib/deal-engine';
 
 interface OfferCalculatorPanelProps {
   distrokid?: DistroKidDataset;
+  artistId?: string;
 }
+
+const UNLOCKABLE_FIELDS = [
+  { key: 'backCatalogCount', label: 'Back Catalog' },
+  { key: 'frontCatalogCount', label: 'Front Catalog' },
+  { key: 'exclusivityMonths', label: 'Exclusivity' },
+  { key: 'artistRoyaltyPct', label: 'Artist Royalty' },
+  { key: 'optionCount', label: 'Options' },
+  { key: 'optionPeriodMonths', label: 'Option Period' },
+  { key: 'publishing', label: 'Publishing' },
+  { key: 'contentBudgetPct', label: 'Content Budget' },
+  { key: 'rightOfFirstRefusal', label: 'ROFR' },
+  { key: 'upstreaming', label: 'Upstreaming' },
+  { key: 'ancillaries', label: 'Ancillaries' },
+  { key: 'allUpfront', label: 'All Upfront' },
+];
 
 const fmt = (n: number) => {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -23,10 +39,17 @@ const fmtNum = (n: number) => {
 
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-export default function OfferCalculatorPanel({ distrokid }: OfferCalculatorPanelProps) {
+export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalculatorPanelProps) {
   const [inputs, setInputs] = useState<DealInputs>(DEFAULT_INPUTS);
   const [showSettings, setShowSettings] = useState(false);
   const [decayRate, setDecayRate] = useState(10);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareLabel, setShareLabel] = useState('');
+  const [shareExpiry, setShareExpiry] = useState(30);
+  const [shareUnlocked, setShareUnlocked] = useState<Set<string>>(new Set(['backCatalogCount', 'frontCatalogCount', 'exclusivityMonths']));
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCreating, setShareCreating] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const songData: SongData[] = useMemo(() => {
     if (!distrokid?.songEarnings) return [];
@@ -458,6 +481,100 @@ export default function OfferCalculatorPanel({ distrokid }: OfferCalculatorPanel
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Share with Artist */}
+      {artistId && deal && (
+        <div className="calc-panel-share-row">
+          <button className="btn-primary" onClick={() => { setShowShareModal(true); setShareUrl(null); }}>
+            Share Calculator with Artist →
+          </button>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="share-deal-modal-overlay" onClick={() => setShowShareModal(false)}>
+          <div className="share-deal-modal" onClick={e => e.stopPropagation()}>
+            <h3>Share Deal Calculator</h3>
+            <p className="share-deal-modal-sub">Create a link the artist can use to explore deal terms. Choose which fields they can adjust.</p>
+
+            <div className="share-deal-field">
+              <label htmlFor="share-label">Link Label</label>
+              <input id="share-label" type="text" value={shareLabel} onChange={e => setShareLabel(e.target.value)}
+                placeholder={`${distrokid?.artistName || 'Artist'} — Deal Calculator`} />
+            </div>
+
+            <div className="share-deal-field">
+              <label htmlFor="share-expiry">Expires In</label>
+              <select id="share-expiry" value={shareExpiry} onChange={e => setShareExpiry(+e.target.value)}>
+                <option value={7}>7 days</option>
+                <option value={14}>14 days</option>
+                <option value={30}>30 days</option>
+                <option value={90}>90 days</option>
+                <option value={0}>Never</option>
+              </select>
+            </div>
+
+            <div className="share-deal-unlock-title">Artist Can Adjust:</div>
+            <div className="share-deal-unlock-grid">
+              {UNLOCKABLE_FIELDS.map(f => (
+                <label key={f.key} className="share-deal-unlock-item">
+                  <input type="checkbox" checked={shareUnlocked.has(f.key)}
+                    onChange={e => {
+                      setShareUnlocked(prev => {
+                        const next = new Set(prev);
+                        e.target.checked ? next.add(f.key) : next.delete(f.key);
+                        return next;
+                      });
+                    }} />
+                  {f.label}
+                </label>
+              ))}
+            </div>
+
+            {shareUrl && (
+              <div className="share-deal-result">
+                <span className="share-deal-result-url">{shareUrl}</span>
+                <button className="share-deal-copy-btn" onClick={async () => {
+                  try { await navigator.clipboard.writeText(shareUrl); } catch {
+                    const ta = document.createElement('textarea'); ta.value = shareUrl;
+                    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+                  }
+                  setShareCopied(true); setTimeout(() => setShareCopied(false), 2000);
+                }}>{shareCopied ? '✓ Copied!' : 'Copy'}</button>
+              </div>
+            )}
+
+            <div className="share-deal-actions">
+              <button className="btn-secondary" onClick={() => setShowShareModal(false)}>Cancel</button>
+              <button className="btn-primary" disabled={shareCreating} onClick={async () => {
+                setShareCreating(true);
+                try {
+                  const res = await fetch('/api/deal-share', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      artistId,
+                      dealConfig: inputs,
+                      unlockedFields: [...shareUnlocked],
+                      constraints: {},
+                      label: shareLabel || `${distrokid?.artistName || 'Artist'} — Deal Calculator`,
+                      expiresInDays: shareExpiry || null,
+                    }),
+                  });
+                  if (res.ok) {
+                    const result = await res.json();
+                    setShareUrl(result.url);
+                  }
+                } catch (err) {
+                  console.error('Failed to create share link:', err);
+                }
+                setShareCreating(false);
+              }}>{shareCreating ? 'Creating…' : shareUrl ? 'Generate New Link' : 'Generate Link'}</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
