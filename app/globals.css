@@ -3398,25 +3398,84 @@ a:focus-visible {
 .deal-share-error h2 { font-size: 1.2rem; font-weight: 600; margin: 0; }
 .deal-share-error p { font-size: 0.85rem; color: var(--text-tertiary); margin: 0; }
 
+/* Top Bar */
+.deal-share-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.deal-share-brand {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6366f1;
+  letter-spacing: 0.15em;
+}
+.deal-share-topbar-label {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.12em;
+}
+
 /* Header */
 .deal-share-header {
   padding: 2rem 2.5rem 1rem;
   max-width: 1200px;
   margin: 0 auto;
+  text-align: center;
+}
+.deal-share-header-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+.deal-share-eyebrow {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #818cf8;
+  margin: 0 0 0.4rem;
+  font-weight: 500;
 }
 .deal-share-header h1 {
-  font-size: 1.8rem;
+  font-size: 2.8rem;
   font-weight: 700;
   letter-spacing: -0.03em;
   margin: 0;
   background: linear-gradient(135deg, #f5f5f7, #a1a1aa);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+}
+.deal-share-collab {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 0.5rem;
+}
+.deal-share-collab-line {
+  width: 48px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99,102,241,0.4));
+}
+.deal-share-collab-line:last-child {
+  background: linear-gradient(90deg, rgba(99,102,241,0.4), transparent);
+}
+.deal-share-collab-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #818cf8;
+  letter-spacing: 0.1em;
 }
 .deal-share-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   color: var(--text-tertiary);
-  margin: 0.3rem 0 0;
+  margin: 0.5rem 0 0;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -3678,13 +3737,23 @@ a:focus-visible {
 .deal-share-footer {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem 2.5rem 2rem;
+  padding: 2rem 2.5rem 2.5rem;
   text-align: center;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: 1rem;
+}
+.deal-share-footer-brand {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #6366f1;
+  margin-bottom: 0.5rem;
 }
 .deal-share-footer p {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-tertiary);
   margin: 0;
+  opacity: 0.7;
 }
 
 /* ============================================================

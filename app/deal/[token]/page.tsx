@@ -109,10 +109,22 @@ export default function DealSharePage() {
 
   return (
     <div className="deal-share-page">
+      {/* Top Bar */}
+      <div className="deal-share-topbar">
+        <span className="deal-share-brand">NEWWRLD</span>
+        <span className="deal-share-topbar-label">DEAL CALCULATOR</span>
+      </div>
+
       {/* Header */}
       <header className="deal-share-header">
         <div className="deal-share-header-info">
+          <p className="deal-share-eyebrow">Customize Your Offer</p>
           <h1>{data.artistName}</h1>
+          <div className="deal-share-collab">
+            <span className="deal-share-collab-line" />
+            <span className="deal-share-collab-text">× NEWWRLD</span>
+            <span className="deal-share-collab-line" />
+          </div>
           {data.label && <p className="deal-share-subtitle">{data.label}</p>}
         </div>
       </header>
@@ -396,6 +408,7 @@ export default function DealSharePage() {
 
       {/* Footer */}
       <footer className="deal-share-footer">
+        <div className="deal-share-footer-brand">NEWWRLD</div>
         <p>This is an exploratory tool. Final terms are subject to negotiation and formal agreement.</p>
       </footer>
     </div>
