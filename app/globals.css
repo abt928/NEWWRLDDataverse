@@ -3873,3 +3873,214 @@ a:focus-visible {
   transition: all 0.15s;
 }
 .share-deal-copy-btn:hover { background: rgba(99,102,241,0.3); }
+
+/* ============================================================
+   Formula Settings (internal OfferCalculatorPanel)
+   ============================================================ */
+.calc-panel-settings-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  margin: 0.8rem 0;
+}
+.calc-panel-formula-group {
+  margin-bottom: 0.8rem;
+}
+.calc-panel-formula-group-title {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #818cf8;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 0.4rem;
+}
+.calc-panel-formula-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  gap: 0.5rem;
+}
+.calc-panel-formula-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  flex: 1;
+}
+.calc-panel-formula-input {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.calc-panel-formula-input input[type="number"] {
+  width: 72px;
+  padding: 0.25rem 0.4rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+.calc-panel-formula-input input[type="number"]:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+.calc-panel-formula-pct {
+  font-size: 0.6rem;
+  color: var(--text-tertiary);
+  min-width: 40px;
+}
+.calc-panel-reset-btn {
+  margin-top: 0.6rem;
+  font-size: 0.65rem;
+  width: 100%;
+}
+
+/* ============================================================
+   Share Modal — Wide + Multi-Step
+   ============================================================ */
+.share-deal-modal-wide {
+  max-width: 680px;
+}
+.share-deal-review-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.2rem;
+  margin: 1rem 0;
+}
+.share-deal-review-col h4 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.share-deal-review-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  padding: 0.25rem 0;
+  color: var(--text-secondary);
+}
+.share-deal-review-row span:last-child {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+.share-deal-review-total {
+  margin-top: 0.3rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(99,102,241,0.2);
+}
+.share-deal-review-total span:last-child {
+  color: #818cf8;
+  font-weight: 700;
+}
+.share-deal-review-info {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.share-deal-review-default {
+  font-size: 0.58rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Branding Picker */
+.share-deal-branding-row {
+  display: flex;
+  gap: 0.5rem;
+}
+.share-deal-branding-btn {
+  flex: 1;
+  padding: 0.5rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.share-deal-branding-btn.active {
+  background: rgba(99,102,241,0.15);
+  border-color: #6366f1;
+  color: #818cf8;
+}
+.share-deal-branding-btn:hover:not(.active) {
+  border-color: rgba(255,255,255,0.2);
+}
+
+/* Select All */
+.share-deal-unlock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+.share-deal-select-all {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 0.65rem;
+  cursor: pointer;
+  font-weight: 500;
+  padding: 0;
+}
+.share-deal-select-all:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   Help Tooltips (artist-facing)
+   ============================================================ */
+.deal-share-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(99,102,241,0.12);
+  color: #818cf8;
+  font-size: 0.55rem;
+  font-weight: 700;
+  cursor: help;
+  position: relative;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+.deal-share-help-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1c1c22;
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  width: 240px;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.deal-share-help-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1c1c22;
+}

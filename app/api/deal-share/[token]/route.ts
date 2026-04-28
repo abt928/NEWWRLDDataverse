@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
-import { calculateDeal, type DealInputs, type SongData, type MonthlyData } from '@/lib/deal-engine';
+import { calculateDeal, type DealInputs, type FormulaOverrides, type SongData, type MonthlyData } from '@/lib/deal-engine';
 
 // Public endpoint — no auth required
 export async function GET(
@@ -65,14 +65,16 @@ export async function GET(
       .map(([month, data]) => ({ month, ...data }))
       .sort((a, b) => a.month.localeCompare(b.month));
 
-    // Calculate deal with the stored config
+    // Calculate deal with the stored config AND formula overrides
     const dealConfig = share.dealConfig as unknown as DealInputs;
-    const dealOutput = calculateDeal(songData, monthlyData, dealConfig);
+    const formulaOverrides = share.formulaOverrides as unknown as Partial<FormulaOverrides>;
+    const dealOutput = calculateDeal(songData, monthlyData, dealConfig, formulaOverrides);
 
     return NextResponse.json({
       artistName: share.artist.name,
       genre: share.artist.genre,
       label: share.label,
+      branding: share.branding || 'NEWWRLD',
       dealConfig,
       dealOutput,
       unlockedFields: share.unlockedFields as string[],
@@ -80,6 +82,8 @@ export async function GET(
       // Aggregated data for client-side recalculation
       songData,
       monthlyData,
+      // Formula overrides for client-side recalculation (but NOT exposed in UI)
+      formulaOverrides,
       createdAt: share.createdAt,
     });
   } catch (error) {

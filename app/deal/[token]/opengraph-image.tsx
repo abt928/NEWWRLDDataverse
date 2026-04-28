@@ -11,18 +11,21 @@ export default async function OGImage({ params }: { params: Promise<{ token: str
 
   let artistName = 'Artist';
   let label = 'Deal Calculator';
+  let branding = 'NEWWRLD';
 
   try {
     const share = await prisma.dealShare.findUnique({
       where: { token },
       select: {
         label: true,
+        branding: true,
         artist: { select: { name: true } },
       },
     });
     if (share) {
       artistName = share.artist.name;
       if (share.label) label = share.label;
+      if (share.branding) branding = share.branding;
     }
   } catch {
     // Fallback to defaults
@@ -155,7 +158,7 @@ export default async function OGImage({ params }: { params: Promise<{ token: str
                 display: 'flex',
               }}
             >
-              × NEWWRLD
+              × {branding}
             </div>
             <div
               style={{

@@ -9,7 +9,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { artistId, dealConfig, unlockedFields, constraints, label, expiresInDays } = await req.json();
+    const {
+      artistId, dealConfig, unlockedFields, constraints,
+      formulaOverrides, branding, ogHeadline, ogDescription,
+      label, expiresInDays,
+    } = await req.json();
 
     if (!artistId) {
       return NextResponse.json({ error: 'artistId is required' }, { status: 400 });
@@ -25,6 +29,14 @@ export async function POST(req: NextRequest) {
       ? new Date(Date.now() + expiresInDays * 86400000)
       : null;
 
+    // Save formula overrides to artist record as default for this artist
+    if (formulaOverrides && Object.keys(formulaOverrides).length > 0) {
+      await prisma.artist.update({
+        where: { id: artistId },
+        data: { dealFormula: formulaOverrides },
+      });
+    }
+
     const share = await prisma.dealShare.create({
       data: {
         artistId,
@@ -32,6 +44,10 @@ export async function POST(req: NextRequest) {
         dealConfig: dealConfig || {},
         unlockedFields: unlockedFields || [],
         constraints: constraints || {},
+        formulaOverrides: formulaOverrides || {},
+        branding: branding || 'NEWWRLD',
+        ogHeadline: ogHeadline || '',
+        ogDescription: ogDescription || '',
         label: label || `${artist.name} — Deal Calculator`,
         expiresAt,
       },

@@ -113,6 +113,7 @@ model Artist {
   shareLinks          ShareLink[]
   leads               SongcashLead[]
   dealShares          DealShare[]
+  dealFormula         Json               @default("{}")
   pipelineStage       String             @default("research")
   source              String             @default("internal")
   luminateUploadedAt  DateTime?
@@ -290,19 +291,23 @@ model SongcashLead {
 // ============================================================
 
 model DealShare {
-  id             String    @id @default(cuid())
-  token          String    @unique @default(cuid())
-  artistId       String
-  artist         Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
-  createdBy      String
-  user           User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
-  dealConfig     Json      @default("{}")
-  unlockedFields Json      @default("[]")
-  constraints    Json      @default("{}")
-  label          String    @default("")
-  expiresAt      DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  token            String    @unique @default(cuid())
+  artistId         String
+  artist           Artist    @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  createdBy        String
+  user             User      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  dealConfig       Json      @default("{}")
+  unlockedFields   Json      @default("[]")
+  constraints      Json      @default("{}")
+  formulaOverrides Json      @default("{}")
+  branding         String    @default("NEWWRLD")
+  ogHeadline       String    @default("")
+  ogDescription    String    @default("")
+  label            String    @default("")
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([artistId])
 }

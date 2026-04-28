@@ -50,6 +50,73 @@ export interface DealInputs {
   allUpfront: boolean;
 }
 
+// ============================================================
+// Formula Overrides — every hardcoded multiplier is tunable
+// ============================================================
+
+export interface FormulaOverrides {
+  // Exclusivity multipliers
+  exclusivity3mo: number;       // default 0.55
+  exclusivity6mo: number;       // default 0.70
+  exclusivity12mo: number;      // default 1.00
+  exclusivity18mo: number;      // default 1.04
+  exclusivity24mo: number;      // default 1.06
+  // Royalty formula
+  royaltyDecreasePerTen: number; // default 0.20 (20% decrease per 10% below 50)
+  royaltyIncreasePer1: number;   // default 0.0025 (0.25% increase per 1% above 50)
+  // ROFR bonus
+  rofrPct: number;               // default 0.03
+  // Budget split
+  advanceSplitPct: number;       // default 0.75
+  // Content budget bonus
+  contentBonusPct: number;       // default 0.10
+  // All-upfront discount
+  allUpfrontDiscountPct: number; // default 0.15
+  // Option period multipliers
+  optionPeriod8mo: number;       // default 0.92
+  optionPeriod12mo: number;      // default 1.00
+  optionPeriod16mo: number;      // default 1.08
+  // Publishing
+  publishingAdminPct: number;    // default 0.15
+  publishingCopubMultiplier: number; // default 1.80
+  // Extras
+  upstreamingPct: number;        // default 0.07
+  ancillariesPct: number;        // default 0.035
+  // Big song bonus
+  bigSongBonusPerSong: number;   // default 0.03
+  bigSongBonusMax: number;       // default 0.15
+  // Front catalog diminishing returns
+  frontDiminishPerSong: number;  // default 0.05
+  frontDiminishFloor: number;    // default 0.40
+  frontDiminishAfter: number;    // default 8 (start diminishing after song #8)
+}
+
+export const DEFAULT_OVERRIDES: FormulaOverrides = {
+  exclusivity3mo: 0.55,
+  exclusivity6mo: 0.70,
+  exclusivity12mo: 1.00,
+  exclusivity18mo: 1.04,
+  exclusivity24mo: 1.06,
+  royaltyDecreasePerTen: 0.20,
+  royaltyIncreasePer1: 0.0025,
+  rofrPct: 0.03,
+  advanceSplitPct: 0.75,
+  contentBonusPct: 0.10,
+  allUpfrontDiscountPct: 0.15,
+  optionPeriod8mo: 0.92,
+  optionPeriod12mo: 1.00,
+  optionPeriod16mo: 1.08,
+  publishingAdminPct: 0.15,
+  publishingCopubMultiplier: 1.80,
+  upstreamingPct: 0.07,
+  ancillariesPct: 0.035,
+  bigSongBonusPerSong: 0.03,
+  bigSongBonusMax: 0.15,
+  frontDiminishPerSong: 0.05,
+  frontDiminishFloor: 0.40,
+  frontDiminishAfter: 8,
+};
+
 export interface DealOutput {
   // Core values
   backCatalogValue: number;
@@ -70,7 +137,7 @@ export interface DealOutput {
   // Total deal value (before options/publishing/extras)
   coreDealValue: number;
 
-  // Split: 75% advance / 25% marketing
+  // Split: advance / marketing
   advanceBudget: number;
   marketingBudget: number;
 
@@ -79,16 +146,16 @@ export interface DealOutput {
   backCatalogDeliveryPayment: number;
   halfSongsPayment: number;
   otherHalfPayment: number;
-  allUpfrontDiscount: number; // 15% discount if all upfront
+  allUpfrontDiscount: number;
 
   // Content budget shift
-  contentBudget: number;        // amount moved from advance
-  contentBudgetBonus: number;   // 10% increase on moved amount
-  adjustedAdvance: number;      // advance after content shift
+  contentBudget: number;
+  contentBudgetBonus: number;
+  adjustedAdvance: number;
 
   // Options
-  optionValue: number;          // per option
-  totalOptionsValue: number;    // all options combined
+  optionValue: number;
+  totalOptionsValue: number;
   optionPeriodMultiplier: number;
 
   // Publishing
@@ -133,7 +200,9 @@ export function calculateDeal(
   songs: SongData[],
   monthlyRevenue: MonthlyData[],
   inputs: DealInputs,
+  overrides?: Partial<FormulaOverrides>,
 ): DealOutput {
+  const f = { ...DEFAULT_OVERRIDES, ...overrides };
   const totalSongs = songs.length;
 
   // ── Catalog metrics ──────────────────────────────────
@@ -153,20 +222,15 @@ export function calculateDeal(
       : 0;
 
   // ── Back Catalog Value ───────────────────────────────
-  // Songs are already sorted by earnings (desc from parser).
-  // As you slide from smallest to largest, the offer grows by % of streams included.
-  // Small bonus for adding the biggest songs.
-  const songsSorted = [...songs].sort((a, b) => a.earnings - b.earnings); // ascending for slider
+  const songsSorted = [...songs].sort((a, b) => a.earnings - b.earnings);
   const clampedBack = Math.min(Math.max(inputs.backCatalogCount, 0), totalSongs);
 
   let backCatalogValue = 0;
   if (clampedBack > 0) {
-    // Take the top N songs (from smallest up)
     const includedSongs = songsSorted.slice(0, clampedBack);
     const includedStreams = includedSongs.reduce((s, song) => s + song.streams, 0);
     const streamsPct = totalStreams > 0 ? includedStreams / totalStreams : 0;
 
-    // Base: annual revenue × stream share
     backCatalogValue = annualRevenue * streamsPct;
 
     // Bonus for including the biggest songs (top 10% of catalog)
@@ -175,14 +239,12 @@ export function calculateDeal(
       (_, idx) => (songsSorted.indexOf(includedSongs[idx]) >= bigSongThreshold)
     ).length;
     const bigSongBonusPct = bigSongsIncluded > 0
-      ? Math.min(bigSongsIncluded * 0.03, 0.15) // 3% per big song, max 15%
+      ? Math.min(bigSongsIncluded * f.bigSongBonusPerSong, f.bigSongBonusMax)
       : 0;
     backCatalogValue *= (1 + bigSongBonusPct);
   }
 
   // ── Front Catalog Value ──────────────────────────────
-  // Based on average earnings from the "middle 60%" of the catalog
-  // (excluding top 20% and bottom 10%)
   const earningsSorted = [...songs].sort((a, b) => a.earnings - b.earnings);
   const bottom10Idx = Math.floor(totalSongs * 0.10);
   const top20Idx = Math.ceil(totalSongs * 0.80);
@@ -191,7 +253,6 @@ export function calculateDeal(
     ? middleSongs.reduce((s, song) => s + song.earnings, 0) / middleSongs.length
     : 0;
 
-  // Annualize: what one "average middle" song makes per year
   const avgSongEarningsPerYear = catalogMonths > 0
     ? (middleAvgEarnings / catalogMonths) * 12
     : middleAvgEarnings;
@@ -200,9 +261,8 @@ export function calculateDeal(
   let frontCatalogValue = 0;
   for (let i = 0; i < clampedFront; i++) {
     let songValue = avgSongEarningsPerYear;
-    // Diminishing returns after song #8
-    if (i >= 8) {
-      const diminishFactor = Math.max(0.4, 1 - (i - 8) * 0.05); // 5% less per song after 8
+    if (i >= f.frontDiminishAfter) {
+      const diminishFactor = Math.max(f.frontDiminishFloor, 1 - (i - f.frontDiminishAfter) * f.frontDiminishPerSong);
       songValue *= diminishFactor;
     }
     frontCatalogValue += songValue;
@@ -214,44 +274,42 @@ export function calculateDeal(
   // ── Exclusivity Modifier ─────────────────────────────
   let exclusivityMultiplier = 1.0;
   switch (inputs.exclusivityMonths) {
-    case 3:  exclusivityMultiplier = 0.55; break; // drastic cut
-    case 6:  exclusivityMultiplier = 0.70; break; // drastic cut
-    case 12: exclusivityMultiplier = 1.00; break; // regular
-    case 18: exclusivityMultiplier = 1.04; break; // 4% boost
-    case 24: exclusivityMultiplier = 1.06; break; // 6% boost
+    case 3:  exclusivityMultiplier = f.exclusivity3mo; break;
+    case 6:  exclusivityMultiplier = f.exclusivity6mo; break;
+    case 12: exclusivityMultiplier = f.exclusivity12mo; break;
+    case 18: exclusivityMultiplier = f.exclusivity18mo; break;
+    case 24: exclusivityMultiplier = f.exclusivity24mo; break;
   }
   const postExclusivityValue = baseOfferValue * exclusivityMultiplier;
 
   // ── Artist Royalty Modifier ──────────────────────────
-  // Base: 50%. Below 50% → every 10% lower = 20% decrease in budgets.
-  // Above 50% → every 1% higher = 0.25% increase.
   let royaltyMultiplier = 1.0;
   const royaltyPct = Math.min(Math.max(inputs.artistRoyaltyPct, 20), 85);
   if (royaltyPct < 50) {
     const pctBelow = 50 - royaltyPct;
-    const decreasePct = (pctBelow / 10) * 0.20; // 20% decrease per 10% lower
+    const decreasePct = (pctBelow / 10) * f.royaltyDecreasePerTen;
     royaltyMultiplier = 1 - decreasePct;
   } else if (royaltyPct > 50) {
     const pctAbove = royaltyPct - 50;
-    const increasePct = pctAbove * 0.0025; // 1/4 of each %
+    const increasePct = pctAbove * f.royaltyIncreasePer1;
     royaltyMultiplier = 1 + increasePct;
   }
   const postRoyaltyValue = postExclusivityValue * royaltyMultiplier;
 
   // ── ROFR ─────────────────────────────────────────────
-  const rofrBonus = inputs.rightOfFirstRefusal ? postRoyaltyValue * 0.03 : 0;
+  const rofrBonus = inputs.rightOfFirstRefusal ? postRoyaltyValue * f.rofrPct : 0;
 
   // ── Core Deal Value ──────────────────────────────────
   const coreDealValue = postRoyaltyValue + rofrBonus;
 
-  // ── Split: 75% Advance / 25% Marketing ───────────────
-  const advanceBudgetRaw = coreDealValue * 0.75;
-  const marketingBudget = coreDealValue * 0.25;
+  // ── Split: Advance / Marketing ───────────────────────
+  const advanceBudgetRaw = coreDealValue * f.advanceSplitPct;
+  const marketingBudget = coreDealValue * (1 - f.advanceSplitPct);
 
   // ── Content Budget Shift ─────────────────────────────
   const contentShiftPct = Math.min(Math.max(inputs.contentBudgetPct, 0), 50) / 100;
   const contentShiftAmount = advanceBudgetRaw * contentShiftPct;
-  const contentBudgetBonus = contentShiftAmount * 0.10; // 10% increase on shifted amount
+  const contentBudgetBonus = contentShiftAmount * f.contentBonusPct;
   const contentBudget = contentShiftAmount + contentBudgetBonus;
   const adjustedAdvance = advanceBudgetRaw - contentShiftAmount;
 
@@ -263,7 +321,7 @@ export function calculateDeal(
   let allUpfrontDiscount = 0;
 
   if (inputs.allUpfront) {
-    allUpfrontDiscount = adjustedAdvance * 0.15;
+    allUpfrontDiscount = adjustedAdvance * f.allUpfrontDiscountPct;
     const discountedAdvance = adjustedAdvance - allUpfrontDiscount;
     signingPayment = discountedAdvance * 0.50;
     backCatalogDeliveryPayment = discountedAdvance * 0.50;
@@ -277,14 +335,12 @@ export function calculateDeal(
   }
 
   // ── Options ──────────────────────────────────────────
-  // Each option = 4 months of catalog revenue + front catalog value
-  // Minimum 10 new songs for the option, but if front > 10, use that
   const optionFrontCount = Math.max(clampedFront, 10);
   let optionFrontValue = 0;
   for (let i = 0; i < optionFrontCount; i++) {
     let songValue = avgSongEarningsPerYear;
-    if (i >= 8) {
-      const diminishFactor = Math.max(0.4, 1 - (i - 8) * 0.05);
+    if (i >= f.frontDiminishAfter) {
+      const diminishFactor = Math.max(f.frontDiminishFloor, 1 - (i - f.frontDiminishAfter) * f.frontDiminishPerSong);
       songValue *= diminishFactor;
     }
     optionFrontValue += songValue;
@@ -294,9 +350,9 @@ export function calculateDeal(
 
   let optionPeriodMultiplier = 1.0;
   switch (inputs.optionPeriodMonths) {
-    case 8:  optionPeriodMultiplier = 0.92; break; // 8% decrease
-    case 12: optionPeriodMultiplier = 1.00; break;
-    case 16: optionPeriodMultiplier = 1.08; break; // 8% increase
+    case 8:  optionPeriodMultiplier = f.optionPeriod8mo; break;
+    case 12: optionPeriodMultiplier = f.optionPeriod12mo; break;
+    case 16: optionPeriodMultiplier = f.optionPeriod16mo; break;
   }
 
   const optionValue = optionBaseValue * optionPeriodMultiplier;
@@ -306,21 +362,19 @@ export function calculateDeal(
   // ── Publishing ───────────────────────────────────────
   let publishingValue = 0;
   if (inputs.publishing === 'admin25') {
-    publishingValue = annualRevenue * 0.15; // 15% of last year
+    publishingValue = annualRevenue * f.publishingAdminPct;
   } else if (inputs.publishing === 'copub50') {
-    publishingValue = annualRevenue * 0.15 * 1.8; // same × 1.8x
+    publishingValue = annualRevenue * f.publishingAdminPct * f.publishingCopubMultiplier;
   }
 
   // ── Upstreaming ──────────────────────────────────────
-  // 7% of (core deal value — options — publishing)
   const upstreamingValue = inputs.upstreaming
-    ? coreDealValue * 0.07
+    ? coreDealValue * f.upstreamingPct
     : 0;
 
   // ── Non-recorded Ancillaries ─────────────────────────
-  // 3.5% of (core deal value — options — publishing)
   const ancillariesValue = inputs.ancillaries
-    ? coreDealValue * 0.035
+    ? coreDealValue * f.ancillariesPct
     : 0;
 
   // ── Grand Total ──────────────────────────────────────

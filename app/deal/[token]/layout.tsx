@@ -10,26 +10,32 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
   const { token } = await params;
 
   let artistName = 'Artist';
-  let label = 'Deal Calculator';
+  let branding = 'NEWWRLD';
+  let ogHeadline = '';
+  let ogDescription = '';
 
   try {
     const share = await prisma.dealShare.findUnique({
       where: { token },
       select: {
-        label: true,
+        branding: true,
+        ogHeadline: true,
+        ogDescription: true,
         artist: { select: { name: true } },
       },
     });
     if (share) {
       artistName = share.artist.name;
-      if (share.label) label = share.label;
+      if (share.branding) branding = share.branding;
+      if (share.ogHeadline) ogHeadline = share.ogHeadline;
+      if (share.ogDescription) ogDescription = share.ogDescription;
     }
   } catch {
     // Fallback to defaults
   }
 
-  const title = `${artistName} × NEWWRLD — Customize Your Offer`;
-  const description = `${artistName} — explore and customize your deal terms with NEWWRLD. Adjust catalog size, exclusivity, royalties, and more.`;
+  const title = ogHeadline || `${artistName} × ${branding} — Customize Your Offer`;
+  const description = ogDescription || `${artistName} — explore and customize your deal terms with ${branding}. Adjust catalog size, exclusivity, royalties, and more.`;
 
   return {
     title,
@@ -38,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
       title,
       description,
       type: 'website',
-      siteName: 'NEWWRLD',
+      siteName: branding,
     },
     twitter: {
       card: 'summary_large_image',
