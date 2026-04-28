@@ -403,6 +403,13 @@ export default function DealSharePage() {
             </div>
           )}
 
+          {deal.goodwillBonus > 0 && (
+            <div className="deal-share-section deal-share-section-bonus">
+              <h4>✦ Special Bonus</h4>
+              <div className="deal-share-row"><span>Partnership Bonus</span><span className="deal-share-bonus-val">+{fmt(deal.goodwillBonus)}</span></div>
+            </div>
+          )}
+
           <div className="deal-share-total">
             <span>Grand Total</span>
             <span>{fmt(deal.totalDealValue)}</span>

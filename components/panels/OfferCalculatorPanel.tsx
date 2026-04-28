@@ -399,6 +399,19 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
               <span>All Upfront <em>(−15%)</em></span>
             </label>
           </div>
+
+          {/* Goodwill Bonus */}
+          <div className="calc-panel-ctrl">
+            <div className="calc-panel-ctrl-head">
+              <span>Goodwill Bonus</span>
+              <span className="calc-panel-ctrl-value">{fmt(inputs.goodwillBonus || 0)}</span>
+            </div>
+            <div className="calc-panel-slider-wrap">
+              <label>Appears to artist as a bonus gesture</label>
+              <input type="range" min={0} max={5000} step={50} value={inputs.goodwillBonus || 0} title="Goodwill bonus"
+                onChange={e => update({ goodwillBonus: +e.target.value })} />
+            </div>
+          </div>
         </div>
 
         {/* ── RIGHT: Deal Breakdown ── */}
@@ -451,6 +464,13 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
                 {deal.publishingValue > 0 && <div className="calc-panel-row"><span>Publishing</span><span>+{fmt(deal.publishingValue)}</span></div>}
                 {deal.upstreamingValue > 0 && <div className="calc-panel-row"><span>Upstreaming (7%)</span><span>+{fmt(deal.upstreamingValue)}</span></div>}
                 {deal.ancillariesValue > 0 && <div className="calc-panel-row"><span>Ancillaries (3.5%)</span><span>+{fmt(deal.ancillariesValue)}</span></div>}
+              </div>
+            )}
+
+            {deal.goodwillBonus > 0 && (
+              <div className="calc-panel-section">
+                <h4>Bonus</h4>
+                <div className="calc-panel-row"><span>Goodwill Bonus</span><span>+{fmt(deal.goodwillBonus)}</span></div>
               </div>
             )}
 

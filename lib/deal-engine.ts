@@ -48,6 +48,8 @@ export interface DealInputs {
   ancillaries: boolean;
   // All upfront (signing + back catalog delivery only)
   allUpfront: boolean;
+  // Goodwill bonus (internal use — displayed to artist as a bonus gesture)
+  goodwillBonus: number;
 }
 
 // ============================================================
@@ -168,6 +170,9 @@ export interface DealOutput {
   // Grand total
   totalDealValue: number;
 
+  // Goodwill bonus
+  goodwillBonus: number;
+
   // Metadata
   annualRevenue: number;
   totalStreams: number;
@@ -190,6 +195,7 @@ export const DEFAULT_INPUTS: DealInputs = {
   upstreaming: false,
   ancillaries: false,
   allUpfront: false,
+  goodwillBonus: 0,
 };
 
 // ============================================================
@@ -378,12 +384,14 @@ export function calculateDeal(
     : 0;
 
   // ── Grand Total ──────────────────────────────────────
+  const goodwillBonus = Math.max(inputs.goodwillBonus || 0, 0);
   const totalDealValue = coreDealValue
     + totalOptionsValue
     + publishingValue
     + upstreamingValue
     + ancillariesValue
-    - allUpfrontDiscount;
+    - allUpfrontDiscount
+    + goodwillBonus;
 
   return {
     backCatalogValue: round(backCatalogValue),
@@ -412,6 +420,7 @@ export function calculateDeal(
     upstreamingValue: round(upstreamingValue),
     ancillariesValue: round(ancillariesValue),
     totalDealValue: round(totalDealValue),
+    goodwillBonus: round(goodwillBonus),
     annualRevenue: round(annualRevenue),
     totalStreams,
     catalogMonths,
