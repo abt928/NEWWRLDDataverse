@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
     // Fallback to defaults
   }
 
-  const title = ogHeadline || `${artistName} × ${branding} — Customize Your Offer`;
+  const title = ogHeadline || `${branding} × ${artistName} — Your Offer is Here`;
   const description = ogDescription || `${artistName} — explore and customize your deal terms with ${branding}. Adjust catalog size, exclusivity, royalties, and more.`;
 
   return {

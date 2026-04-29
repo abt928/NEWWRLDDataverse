@@ -126,16 +126,28 @@ export default function OverviewPanel({ kpis, growth, timeline, distrokid, uploa
 
       {/* Data Inventory Bar */}
       <div className="data-inventory">
-        {uploads.length > 0 ? uploads.map((u) => {
-          const typeLabel = u.fileType === 'luminate-trends' ? 'Activity Over Time' : u.fileType === 'distrokid' ? 'DistroKid' : 'Luminate QBR';
-          return (
-            <div key={u.id} className="inventory-item inventory-active">
+        {uploads.length > 0 ? (() => {
+          // Group uploads by type for a compact display
+          const grouped: Record<string, { count: number; totalWeeks: number; locations: Set<string>; latest: string }> = {};
+          for (const u of uploads) {
+            const typeLabel = u.fileType === 'luminate-trends' ? 'Activity Over Time' : u.fileType === 'distrokid' ? 'DistroKid' : 'Luminate QBR';
+            if (!grouped[typeLabel]) grouped[typeLabel] = { count: 0, totalWeeks: 0, locations: new Set(), latest: u.uploadedAt };
+            grouped[typeLabel].count++;
+            grouped[typeLabel].totalWeeks += u.weekCount;
+            grouped[typeLabel].locations.add(u.location);
+            if (u.uploadedAt > grouped[typeLabel].latest) grouped[typeLabel].latest = u.uploadedAt;
+          }
+          return Object.entries(grouped).map(([label, info]) => (
+            <div key={label} className="inventory-item inventory-active">
               <span className="inventory-dot active" />
-              <span className="inventory-label">{typeLabel}</span>
-              <span className="inventory-meta">{u.location} · {u.weekCount}w · {timeAgo(u.uploadedAt)}</span>
+              <span className="inventory-label">{label}</span>
+              <span className="inventory-meta">
+                {info.count > 1 ? `${info.count} files · ` : ''}
+                {Array.from(info.locations).join(', ')} · {info.totalWeeks}w · {timeAgo(info.latest)}
+              </span>
             </div>
-          );
-        }) : (
+          ));
+        })() : (
           <div className="inventory-item inventory-active">
             <span className={`inventory-dot ${luminateUploadedAt ? 'active' : ''}`} />
             <span className="inventory-label">Luminate</span>

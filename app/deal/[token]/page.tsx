@@ -19,21 +19,6 @@ interface DealShareData {
   createdAt: string;
 }
 
-const TOOLTIPS: Record<string, string> = {
-  backCatalogCount: 'Include more of your catalog to unlock higher deal value. Your most popular songs add bonus value to the offer.',
-  frontCatalogCount: 'Commit to delivering new music to demonstrate ongoing creative output and increase the total deal.',
-  exclusivityMonths: 'Longer exclusivity periods signal commitment and unlock premium deal terms with stronger marketing support.',
-  artistRoyaltyPct: 'A balanced royalty rate ensures strong marketing investment in your catalog while maintaining your earnings.',
-  optionCount: 'Options extend the partnership with additional terms. More options show long-term commitment and increase total value.',
-  optionPeriodMonths: 'Longer option periods provide more time for catalog growth and unlock better deal terms.',
-  publishing: 'Including publishing rights significantly increases the total deal value and enables broader licensing opportunities.',
-  contentBudgetPct: 'Allocating budget to content creation increases the total deal by 10% of the shifted amount — a built-in bonus.',
-  rightOfFirstRefusal: 'Granting first refusal rights adds a bonus to the deal and maintains a strong ongoing relationship.',
-  upstreaming: 'Upstreaming unlocks major label distribution channels, adding significant value to your catalog.',
-  ancillaries: 'Including ancillary rights (merch, sync, brand) adds additional revenue streams to the deal.',
-  allUpfront: 'All-upfront payment simplifies the deal structure with a single signing payment.',
-};
-
 const fmt = (n: number) => {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
@@ -46,17 +31,52 @@ const fmtNum = (n: number) => {
   return n.toLocaleString();
 };
 
-function HelpTip({ field }: { field: string }) {
-  const [show, setShow] = useState(false);
-  const tip = TOOLTIPS[field];
-  if (!tip) return null;
-  return (
-    <span className="deal-share-help" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
-      ?
-      {show && <span className="deal-share-help-tip">{tip}</span>}
-    </span>
-  );
+const BRAND_FONTS: Record<string, string> = {
+  NEWWRLD: 'https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&display=swap',
+  ANTIGRAVITY: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap',
+  SONGCASH: 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap',
+};
+
+const BRAND_NAV: Record<string, { items: { label: string; href: string }[]; cta: string; ctaHref: string }> = {
+  SONGCASH: {
+    items: [
+      { label: 'HOW IT WORKS', href: 'https://www.songcash.com/#how-it-works' },
+      { label: 'CALCULATOR', href: '#' },
+      { label: 'ELIGIBILITY', href: 'https://www.songcash.com/#eligibility' },
+      { label: 'FAQ', href: 'https://www.songcash.com/#faq' },
+    ],
+    cta: 'Get Your Offer', ctaHref: 'https://www.songcash.com/#get-offer',
+  },
+  NEWWRLD: {
+    items: [
+      { label: 'ABOUT', href: 'https://www.newwrld.io' },
+      { label: 'ARTISTS', href: 'https://www.newwrld.io' },
+      { label: 'CALCULATOR', href: '#' },
+    ],
+    cta: 'Get Started', ctaHref: 'https://www.newwrld.io',
+  },
+  ANTIGRAVITY: {
+    items: [
+      { label: 'SERVICES', href: 'https://antigravity.marketing' },
+      { label: 'CALCULATOR', href: '#' },
+      { label: 'CONTACT', href: 'https://antigravity.marketing' },
+    ],
+    cta: 'Get in Touch', ctaHref: 'https://antigravity.marketing',
+  },
+};
+
+function BrandLogo({ brand }: { brand: string }) {
+  if (brand === 'SONGCASH') {
+    return <span className="ds-brand-logo"><span className="ds-brand-song">SONG</span><span className="ds-brand-cash">CASH</span></span>;
+  }
+  if (brand === 'ANTIGRAVITY') {
+    return <span className="ds-brand-logo ds-brand-ag">Antigravity<span className="ds-brand-dot">.</span>marketing</span>;
+  }
+  return <span className="ds-brand-logo">{brand}</span>;
 }
+
+// Exclusivity multiplier labels
+const EXCL_LABELS: Record<number, string> = { 3: '-45%', 6: '-30%', 12: '', 18: '+4%', 24: '+8%' };
 
 export default function DealSharePage() {
   const params = useParams();
@@ -86,13 +106,9 @@ export default function DealSharePage() {
     if (params.token) fetchDeal();
   }, [params.token]);
 
-  const isUnlocked = (field: string): boolean => {
-    return data?.unlockedFields?.includes(field) || false;
-  };
+  const isUnlocked = (field: string): boolean => data?.unlockedFields?.includes(field) || false;
 
-  const getConstraint = (field: string): { min?: number; max?: number } => {
-    return data?.constraints?.[field] || {};
-  };
+  const getConstraint = (field: string): { min?: number; max?: number } => data?.constraints?.[field] || {};
 
   const update = (patch: Partial<DealInputs>) => {
     setInputs(prev => {
@@ -114,20 +130,21 @@ export default function DealSharePage() {
   }, [data, inputs]);
 
   const brand = data?.branding || 'NEWWRLD';
+  const nav = BRAND_NAV[brand] || BRAND_NAV.NEWWRLD;
 
   if (loading) {
     return (
-      <div className="deal-share-page">
-        <div className="deal-share-loading"><div className="spinner" /><p>Loading deal…</p></div>
+      <div className="ds-page">
+        <div className="ds-loading"><div className="spinner" /><p>Loading deal…</p></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="deal-share-page">
-        <div className="deal-share-error">
-          <div className="deal-share-error-icon">✗</div>
+      <div className="ds-page">
+        <div className="ds-error">
+          <div className="ds-error-icon">✗</div>
           <h2>{error === 'This deal link has expired' ? 'Link Expired' : 'Link Not Found'}</h2>
           <p>{error}</p>
         </div>
@@ -137,291 +154,311 @@ export default function DealSharePage() {
 
   if (!data || !deal) return null;
 
-  return (
-    <div className="deal-share-page">
-      {/* Top Bar */}
-      <div className="deal-share-topbar">
-        <span className="deal-share-brand">{brand}</span>
-        <span className="deal-share-topbar-label">DEAL CALCULATOR</span>
-      </div>
+  const advancePct = Math.round((deal.advanceBudget / deal.coreDealValue) * 100) || 75;
+  const marketingPct = 100 - advancePct;
 
-      {/* Header */}
-      <header className="deal-share-header">
-        <div className="deal-share-header-info">
-          <p className="deal-share-eyebrow">Customize Your Offer</p>
-          <h1>{data.artistName}</h1>
-          <div className="deal-share-collab">
-            <span className="deal-share-collab-line" />
-            <span className="deal-share-collab-text">× {brand}</span>
-            <span className="deal-share-collab-line" />
-          </div>
-          {data.label && <p className="deal-share-subtitle">{data.label}</p>}
+  return (
+    <div className="ds-page" data-brand={brand}>
+      {/* Brand Fonts */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="stylesheet" href={BRAND_FONTS[brand] || BRAND_FONTS.NEWWRLD} />
+
+      {/* ── Navigation Bar ── */}
+      <nav className="ds-nav">
+        <BrandLogo brand={brand} />
+        <div className="ds-nav-links">
+          {nav.items.map(item => (
+            <a key={item.label} href={item.href} className="ds-nav-link">{item.label}</a>
+          ))}
+          <a href={nav.ctaHref} className="ds-nav-cta">{nav.cta}</a>
+        </div>
+      </nav>
+
+      {/* ── Header ── */}
+      <header className="ds-header">
+        <div className="ds-header-left">
+          <span className="ds-header-eyebrow">// DEAL CALCULATOR</span>
+          <h1 className="ds-header-artist">{data.artistName}</h1>
+        </div>
+        <div className="ds-header-right">
+          <span className="ds-header-deal-label">TOTAL DEAL VALUE</span>
+          <span className="ds-header-deal-value">{fmt(deal.totalDealValue)}</span>
         </div>
       </header>
 
-      {/* Hero KPIs */}
-      <div className="deal-share-hero">
-        <div className="deal-share-hero-primary">
-          <span className="deal-share-hero-label">Total Deal Value</span>
-          <span className="deal-share-hero-value">{fmt(deal.totalDealValue)}</span>
+      {/* ── Stats Bar ── */}
+      <div className="ds-stats-bar">
+        <div className="ds-stat">
+          <span className="ds-stat-val">{fmt(deal.annualRevenue)}</span>
+          <span className="ds-stat-label">ANNUAL REVENUE</span>
         </div>
-        <div className="deal-share-hero-stats">
-          <div className="deal-share-hero-stat">
-            <span className="deal-share-hero-stat-val">{fmt(deal.annualRevenue)}</span>
-            <span>Annual Revenue</span>
-          </div>
-          <div className="deal-share-hero-stat">
-            <span className="deal-share-hero-stat-val">{fmtNum(deal.totalStreams)}</span>
-            <span>Total Streams</span>
-          </div>
-          <div className="deal-share-hero-stat">
-            <span className="deal-share-hero-stat-val">${deal.cpm}</span>
-            <span>CPM</span>
-          </div>
-          <div className="deal-share-hero-stat">
-            <span className="deal-share-hero-stat-val">{deal.songsInCatalog}</span>
-            <span>Songs</span>
-          </div>
+        <div className="ds-stat">
+          <span className="ds-stat-val">{fmtNum(deal.totalStreams)}</span>
+          <span className="ds-stat-label">TOTAL STREAMS</span>
+        </div>
+        <div className="ds-stat">
+          <span className="ds-stat-val">${deal.cpm}</span>
+          <span className="ds-stat-label">CPM</span>
+        </div>
+        <div className="ds-stat">
+          <span className="ds-stat-val">{deal.songsInCatalog}</span>
+          <span className="ds-stat-label">SONGS</span>
+        </div>
+        <div className="ds-stat">
+          <span className="ds-stat-val">{deal.catalogMonths}mo</span>
+          <span className="ds-stat-label">CATALOG SPAN</span>
         </div>
       </div>
 
-      <div className="deal-share-grid">
-        {/* Controls — ONLY show unlocked fields */}
-        <div className="deal-share-controls">
-          <h3>Your Deal Parameters</h3>
+      {/* ── Main Content ── */}
+      <main className="ds-main">
 
-          {/* Back Catalog */}
-          {isUnlocked('backCatalogCount') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Back Catalog <HelpTip field="backCatalogCount" /></span>
-                <span className="deal-share-ctrl-val">{fmt(deal.backCatalogValue)}</span>
-              </div>
-              <div className="deal-share-slider">
-                <label>{inputs.backCatalogCount} of {deal.songsInCatalog} songs</label>
-                <input type="range" title="Back catalog songs" min={getConstraint('backCatalogCount').min ?? 0}
-                  max={getConstraint('backCatalogCount').max ?? deal.songsInCatalog}
-                  value={inputs.backCatalogCount}
-                  onChange={e => update({ backCatalogCount: +e.target.value })} />
-              </div>
-            </div>
-          )}
+        {/* Back Catalog + Front Catalog — side by side */}
+        {(isUnlocked('backCatalogCount') || isUnlocked('frontCatalogCount')) && (
+          <div className="ds-row-2">
+            {isUnlocked('backCatalogCount') && (
+              <section className="ds-card">
+                <h3>Back Catalog</h3>
+                <p className="ds-card-desc">Songs from your existing catalog to include in the deal.</p>
+                <div className="ds-slider-row">
+                  <span className="ds-slider-label">{inputs.backCatalogCount} of {deal.songsInCatalog} songs</span>
+                  <input type="range" className="ds-range" min={getConstraint('backCatalogCount').min ?? 0}
+                    max={getConstraint('backCatalogCount').max ?? deal.songsInCatalog}
+                    value={inputs.backCatalogCount} title="Back catalog songs"
+                    onChange={e => update({ backCatalogCount: +e.target.value })} />
+                </div>
+                <span className="ds-card-value">{fmt(deal.backCatalogValue)}</span>
+              </section>
+            )}
+            {isUnlocked('frontCatalogCount') && (
+              <section className="ds-card">
+                <h3>Front Catalog</h3>
+                <p className="ds-card-desc">New songs to deliver. Value per song: ${inputs.frontCatalogCount > 0 ? Math.round(deal.frontCatalogValue / inputs.frontCatalogCount) : 0}/yr. Diminishing after 8.</p>
+                <div className="ds-slider-row">
+                  <span className="ds-slider-label">{inputs.frontCatalogCount} new songs</span>
+                  <input type="range" className="ds-range" min={getConstraint('frontCatalogCount').min ?? 0}
+                    max={getConstraint('frontCatalogCount').max ?? 30}
+                    value={inputs.frontCatalogCount} title="Front catalog songs"
+                    onChange={e => update({ frontCatalogCount: +e.target.value })} />
+                </div>
+                <span className="ds-card-value">{fmt(deal.frontCatalogValue)}</span>
+              </section>
+            )}
+          </div>
+        )}
 
-          {/* Front Catalog */}
-          {isUnlocked('frontCatalogCount') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Front Catalog <HelpTip field="frontCatalogCount" /></span>
-                <span className="deal-share-ctrl-val">{fmt(deal.frontCatalogValue)}</span>
-              </div>
-              <div className="deal-share-slider">
-                <label>{inputs.frontCatalogCount} new songs</label>
-                <input type="range" title="Front catalog songs" min={getConstraint('frontCatalogCount').min ?? 0}
-                  max={getConstraint('frontCatalogCount').max ?? 30}
-                  value={inputs.frontCatalogCount}
-                  onChange={e => update({ frontCatalogCount: +e.target.value })} />
-              </div>
-            </div>
-          )}
-
-          {/* Exclusivity */}
-          {isUnlocked('exclusivityMonths') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Exclusivity Period <HelpTip field="exclusivityMonths" /></span>
-              </div>
-              <div className="deal-share-toggles">
-                {([3, 6, 12, 18, 24] as const).map(m => (
-                  <button key={m} className={`deal-share-toggle ${inputs.exclusivityMonths === m ? 'active' : ''}`}
-                    onClick={() => update({ exclusivityMonths: m })}>{m}mo</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Artist Royalty */}
-          {isUnlocked('artistRoyaltyPct') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Artist Royalty <HelpTip field="artistRoyaltyPct" /></span>
-                <span className="deal-share-ctrl-val">{inputs.artistRoyaltyPct}%</span>
-              </div>
-              <div className="deal-share-slider">
-                <input type="range" title="Artist royalty percentage" min={getConstraint('artistRoyaltyPct').min ?? 20}
-                  max={getConstraint('artistRoyaltyPct').max ?? 85}
-                  value={inputs.artistRoyaltyPct}
-                  onChange={e => update({ artistRoyaltyPct: +e.target.value })} />
-              </div>
-            </div>
-          )}
-
-          {/* Options */}
-          {isUnlocked('optionCount') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Options <HelpTip field="optionCount" /></span>
-                {deal.totalOptionsValue > 0 && <span className="deal-share-ctrl-val">{fmt(deal.totalOptionsValue)}</span>}
-              </div>
-              <div className="deal-share-toggles">
-                {([0, 1, 2, 3, 4] as const).map(n => (
-                  <button key={n} className={`deal-share-toggle ${inputs.optionCount === n ? 'active' : ''}`}
-                    onClick={() => update({ optionCount: n })}>{n}</button>
-                ))}
-              </div>
-              {inputs.optionCount > 0 && isUnlocked('optionPeriodMonths') && (
-                <div className="deal-share-toggles deal-share-sub">
-                  {([8, 12, 16] as const).map(m => (
-                    <button key={m} className={`deal-share-toggle ${inputs.optionPeriodMonths === m ? 'active' : ''}`}
-                      onClick={() => update({ optionPeriodMonths: m })}>{m}mo period</button>
+        {/* Exclusivity + Artist Royalty — side by side */}
+        {(isUnlocked('exclusivityMonths') || isUnlocked('artistRoyaltyPct')) && (
+          <div className="ds-row-2">
+            {isUnlocked('exclusivityMonths') && (
+              <section className="ds-card">
+                <h3>Exclusivity Period</h3>
+                <div className="ds-toggles">
+                  {([3, 6, 12, 18, 24] as const).map(m => (
+                    <button key={m}
+                      className={`ds-toggle ${inputs.exclusivityMonths === m ? 'active' : ''}`}
+                      onClick={() => update({ exclusivityMonths: m })}>
+                      {m}mo
+                      {EXCL_LABELS[m] && <span className={`ds-toggle-badge ${EXCL_LABELS[m].startsWith('+') ? 'positive' : 'negative'}`}>{EXCL_LABELS[m]}</span>}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
+              </section>
+            )}
+            {isUnlocked('artistRoyaltyPct') && (
+              <section className="ds-card">
+                <h3>Artist Royalty</h3>
+                <p className="ds-card-desc">{inputs.artistRoyaltyPct}% — Modifier: {deal.royaltyMultiplier > 1 ? '+' : ''}{((deal.royaltyMultiplier - 1) * 100).toFixed(1)}%</p>
+                <div className="ds-slider-row">
+                  <span className="ds-slider-label">{inputs.artistRoyaltyPct}%</span>
+                  <input type="range" className="ds-range" min={getConstraint('artistRoyaltyPct').min ?? 20}
+                    max={getConstraint('artistRoyaltyPct').max ?? 85}
+                    value={inputs.artistRoyaltyPct} title="Artist royalty"
+                    onChange={e => update({ artistRoyaltyPct: +e.target.value })} />
+                </div>
+              </section>
+            )}
+          </div>
+        )}
 
-          {/* Publishing */}
-          {isUnlocked('publishing') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Publishing <HelpTip field="publishing" /></span>
-                {deal.publishingValue > 0 && <span className="deal-share-ctrl-val">{fmt(deal.publishingValue)}</span>}
-              </div>
-              <div className="deal-share-toggles">
-                {([
-                  { val: 'none' as const, label: 'None' },
-                  { val: 'admin25' as const, label: '25% Admin' },
-                  { val: 'copub50' as const, label: '50% Co-Pub' },
-                ]).map(opt => (
-                  <button key={opt.val} className={`deal-share-toggle ${inputs.publishing === opt.val ? 'active' : ''}`}
-                    onClick={() => update({ publishing: opt.val })}>{opt.label}</button>
+        {/* Options */}
+        {isUnlocked('optionCount') && (
+          <section className="ds-card ds-card-full">
+            <h3>Options</h3>
+            <p className="ds-card-desc">Each option = 4mo catalog revenue + 10 new songs</p>
+            <div className="ds-toggles">
+              {([0, 1, 2, 3, 4] as const).map(n => (
+                <button key={n}
+                  className={`ds-toggle ${inputs.optionCount === n ? 'active' : ''}`}
+                  onClick={() => update({ optionCount: n })}>{n}</button>
+              ))}
+            </div>
+            {inputs.optionCount > 0 && isUnlocked('optionPeriodMonths') && (
+              <div className="ds-toggles ds-toggles-sub">
+                {([8, 12, 16] as const).map(m => (
+                  <button key={m}
+                    className={`ds-toggle ${inputs.optionPeriodMonths === m ? 'active' : ''}`}
+                    onClick={() => update({ optionPeriodMonths: m })}>{m}mo period</button>
                 ))}
               </div>
+            )}
+          </section>
+        )}
+
+        {/* Deal Structure */}
+        <section className="ds-card ds-card-full">
+          <h3>Deal Structure</h3>
+          <div className="ds-structure-cards">
+            <div className="ds-structure-card">
+              <span className="ds-structure-label">ADVANCE ({advancePct}%)</span>
+              <span className="ds-structure-value">{fmt(deal.advanceBudget)}</span>
             </div>
-          )}
-
-          {/* Content Budget */}
-          {isUnlocked('contentBudgetPct') && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head">
-                <span>Content Budget <HelpTip field="contentBudgetPct" /></span>
-                <span className="deal-share-ctrl-val">{inputs.contentBudgetPct}%</span>
-              </div>
-              <div className="deal-share-slider">
-                <input type="range" title="Content budget percentage" min={getConstraint('contentBudgetPct').min ?? 0}
-                  max={getConstraint('contentBudgetPct').max ?? 50}
-                  value={inputs.contentBudgetPct}
-                  onChange={e => update({ contentBudgetPct: +e.target.value })} />
-              </div>
+            <div className="ds-structure-card">
+              <span className="ds-structure-label">MARKETING ({marketingPct}%)</span>
+              <span className="ds-structure-value">{fmt(deal.marketingBudget)}</span>
             </div>
-          )}
+          </div>
+        </section>
 
-          {/* Add-on checkboxes — only show if unlocked */}
-          {(isUnlocked('rightOfFirstRefusal') || isUnlocked('upstreaming') || isUnlocked('ancillaries') || isUnlocked('allUpfront')) && (
-            <div className="deal-share-ctrl">
-              <div className="deal-share-ctrl-head"><span>Add-Ons</span></div>
-              {isUnlocked('rightOfFirstRefusal') && (
-                <label className="deal-share-check">
-                  <input type="checkbox" checked={inputs.rightOfFirstRefusal}
-                    onChange={e => update({ rightOfFirstRefusal: e.target.checked })} />
-                  <span>Right of First Refusal <HelpTip field="rightOfFirstRefusal" /></span>
-                </label>
-              )}
-              {isUnlocked('upstreaming') && (
-                <label className="deal-share-check">
-                  <input type="checkbox" checked={inputs.upstreaming}
-                    onChange={e => update({ upstreaming: e.target.checked })} />
-                  <span>Upstreaming <HelpTip field="upstreaming" /></span>
-                </label>
-              )}
-              {isUnlocked('ancillaries') && (
-                <label className="deal-share-check">
-                  <input type="checkbox" checked={inputs.ancillaries}
-                    onChange={e => update({ ancillaries: e.target.checked })} />
-                  <span>Ancillaries <HelpTip field="ancillaries" /></span>
-                </label>
-              )}
-              {isUnlocked('allUpfront') && (
-                <label className="deal-share-check">
-                  <input type="checkbox" checked={inputs.allUpfront}
-                    onChange={e => update({ allUpfront: e.target.checked })} />
-                  <span>All Upfront <HelpTip field="allUpfront" /></span>
-                </label>
-              )}
+        {/* Payment Schedule */}
+        <section className="ds-card ds-card-full">
+          <h3>Payment Schedule</h3>
+          <div className="ds-payment-rows">
+            <div className="ds-payment-row">
+              <span>On Signing</span>
+              <span className="ds-payment-val">{fmt(deal.signingPayment)}</span>
             </div>
-          )}
-        </div>
-
-        {/* Deal Breakdown — no multipliers shown */}
-        <div className="deal-share-breakdown">
-          <h3>Deal Breakdown</h3>
-
-          <div className="deal-share-section">
-            <h4>Core Deal</h4>
-            <div className="deal-share-row"><span>Back Catalog ({inputs.backCatalogCount} songs)</span><span>{fmt(deal.backCatalogValue)}</span></div>
-            <div className="deal-share-row"><span>Front Catalog ({inputs.frontCatalogCount} songs)</span><span>{fmt(deal.frontCatalogValue)}</span></div>
-            <div className="deal-share-row deal-share-row-sub"><span>Base Offer</span><span>{fmt(deal.baseOfferValue)}</span></div>
-          </div>
-
-          <div className="deal-share-section">
-            <h4>Deal Adjustments</h4>
-            <div className="deal-share-row"><span>Exclusivity ({inputs.exclusivityMonths}mo)</span><span>{fmt(deal.postExclusivityValue)}</span></div>
-            <div className="deal-share-row"><span>Royalty ({inputs.artistRoyaltyPct}%)</span><span>{fmt(deal.postRoyaltyValue)}</span></div>
-            {deal.rofrBonus > 0 && <div className="deal-share-row"><span>ROFR Bonus</span><span>+{fmt(deal.rofrBonus)}</span></div>}
-            <div className="deal-share-row deal-share-row-sub"><span>Core Deal Value</span><span>{fmt(deal.coreDealValue)}</span></div>
-          </div>
-
-          <div className="deal-share-section">
-            <h4>Budget Allocation</h4>
-            <div className="deal-share-row"><span>Advance</span><span>{fmt(deal.advanceBudget)}</span></div>
-            <div className="deal-share-row"><span>Marketing</span><span>{fmt(deal.marketingBudget)}</span></div>
-            {deal.contentBudget > 0 && <>
-              <div className="deal-share-row"><span>Content Budget (bonus included)</span><span>{fmt(deal.contentBudget)}</span></div>
-              <div className="deal-share-row"><span>Adjusted Advance</span><span>{fmt(deal.adjustedAdvance)}</span></div>
-            </>}
-          </div>
-
-          <div className="deal-share-section">
-            <h4>Payment Schedule</h4>
-            <div className="deal-share-row"><span>Signing</span><span>{fmt(deal.signingPayment)}</span></div>
-            <div className="deal-share-row"><span>Back Delivery</span><span>{fmt(deal.backCatalogDeliveryPayment)}</span></div>
+            <div className="ds-payment-row">
+              <span>Back Catalog Delivery</span>
+              <span className="ds-payment-val">{fmt(deal.backCatalogDeliveryPayment)}</span>
+            </div>
             {!inputs.allUpfront && <>
-              <div className="deal-share-row"><span>½ New Songs</span><span>{fmt(deal.halfSongsPayment)}</span></div>
-              <div className="deal-share-row"><span>Other ½ Songs</span><span>{fmt(deal.otherHalfPayment)}</span></div>
+              <div className="ds-payment-row">
+                <span>½ New Songs Delivered</span>
+                <span className="ds-payment-val">{fmt(deal.halfSongsPayment)}</span>
+              </div>
+              <div className="ds-payment-row">
+                <span>Other ½ Delivered</span>
+                <span className="ds-payment-val">{fmt(deal.otherHalfPayment)}</span>
+              </div>
             </>}
             {deal.allUpfrontDiscount > 0 && (
-              <div className="deal-share-row deal-share-row-neg"><span>All-Upfront Discount</span><span>−{fmt(deal.allUpfrontDiscount)}</span></div>
+              <div className="ds-payment-row ds-payment-row-neg">
+                <span>All-Upfront Discount</span>
+                <span className="ds-payment-val">−{fmt(deal.allUpfrontDiscount)}</span>
+              </div>
             )}
           </div>
 
-          {(deal.totalOptionsValue > 0 || deal.publishingValue > 0 || deal.upstreamingValue > 0 || deal.ancillariesValue > 0) && (
-            <div className="deal-share-section">
-              <h4>Additional Value</h4>
-              {deal.totalOptionsValue > 0 && <div className="deal-share-row"><span>{inputs.optionCount} Options ({inputs.optionPeriodMonths}mo)</span><span>+{fmt(deal.totalOptionsValue)}</span></div>}
-              {deal.publishingValue > 0 && <div className="deal-share-row"><span>Publishing</span><span>+{fmt(deal.publishingValue)}</span></div>}
-              {deal.upstreamingValue > 0 && <div className="deal-share-row"><span>Upstreaming</span><span>+{fmt(deal.upstreamingValue)}</span></div>}
-              {deal.ancillariesValue > 0 && <div className="deal-share-row"><span>Ancillaries</span><span>+{fmt(deal.ancillariesValue)}</span></div>}
-            </div>
+          {/* All upfront checkbox */}
+          {isUnlocked('allUpfront') && (
+            <label className="ds-check">
+              <input type="checkbox" checked={inputs.allUpfront}
+                onChange={e => update({ allUpfront: e.target.checked })} />
+              <span>All upfront (signing + delivery)</span>
+            </label>
           )}
+        </section>
 
-          {deal.goodwillBonus > 0 && (
-            <div className="deal-share-section deal-share-section-bonus">
-              <h4>✦ Special Bonus</h4>
-              <div className="deal-share-row"><span>Partnership Bonus</span><span className="deal-share-bonus-val">+{fmt(deal.goodwillBonus)}</span></div>
+        {/* Content Budget Shift */}
+        {isUnlocked('contentBudgetPct') && (
+          <section className="ds-card ds-card-full">
+            <h3>Content Budget Shift</h3>
+            <p className="ds-card-desc">Move funds from advance to content. 10% bonus on shifted amount.</p>
+            <div className="ds-slider-row">
+              <span className="ds-slider-label">{inputs.contentBudgetPct}%</span>
+              <input type="range" className="ds-range" min={getConstraint('contentBudgetPct').min ?? 0}
+                max={getConstraint('contentBudgetPct').max ?? 50}
+                value={inputs.contentBudgetPct} title="Content budget"
+                onChange={e => update({ contentBudgetPct: +e.target.value })} />
             </div>
-          )}
+          </section>
+        )}
 
-          <div className="deal-share-total">
-            <span>Grand Total</span>
-            <span>{fmt(deal.totalDealValue)}</span>
+        {/* Add-Ons + Publishing — side by side */}
+        {(isUnlocked('rightOfFirstRefusal') || isUnlocked('upstreaming') || isUnlocked('ancillaries') || isUnlocked('publishing')) && (
+          <div className="ds-row-2">
+            {/* Add-Ons */}
+            {(isUnlocked('rightOfFirstRefusal') || isUnlocked('upstreaming') || isUnlocked('ancillaries')) && (
+              <section className="ds-card">
+                <h3>Add-Ons</h3>
+                {isUnlocked('rightOfFirstRefusal') && (
+                  <label className="ds-check">
+                    <input type="checkbox" checked={inputs.rightOfFirstRefusal}
+                      onChange={e => update({ rightOfFirstRefusal: e.target.checked })} />
+                    <span>Right of First Refusal</span>
+                    <span className="ds-check-badge">+3%</span>
+                  </label>
+                )}
+                {isUnlocked('upstreaming') && (
+                  <label className="ds-check">
+                    <input type="checkbox" checked={inputs.upstreaming}
+                      onChange={e => update({ upstreaming: e.target.checked })} />
+                    <span>Upstreaming</span>
+                    <span className="ds-check-badge">+7%</span>
+                  </label>
+                )}
+                {isUnlocked('ancillaries') && (
+                  <label className="ds-check">
+                    <input type="checkbox" checked={inputs.ancillaries}
+                      onChange={e => update({ ancillaries: e.target.checked })} />
+                    <span>Non-Recorded Ancillaries</span>
+                    <span className="ds-check-badge">+3.5%</span>
+                  </label>
+                )}
+              </section>
+            )}
+
+            {/* Publishing */}
+            {isUnlocked('publishing') && (
+              <section className="ds-card">
+                <h3>Publishing</h3>
+                <div className="ds-toggles">
+                  {([
+                    { val: 'none' as const, label: 'None' },
+                    { val: 'admin25' as const, label: '25% Admin' },
+                    { val: 'copub50' as const, label: '50% Co-Pub' },
+                  ]).map(opt => (
+                    <button key={opt.val}
+                      className={`ds-toggle ${inputs.publishing === opt.val ? 'active' : ''}`}
+                      onClick={() => update({ publishing: opt.val })}>{opt.label}</button>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
+        )}
+
+        {/* Goodwill Bonus */}
+        {deal.goodwillBonus > 0 && (
+          <section className="ds-card ds-card-full ds-card-bonus">
+            <h3>✦ Partnership Bonus</h3>
+            <div className="ds-payment-rows">
+              <div className="ds-payment-row">
+                <span>Special Bonus</span>
+                <span className="ds-payment-val ds-payment-val-bonus">+{fmt(deal.goodwillBonus)}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+      </main>
+
+      {/* ── Sticky Footer Bar ── */}
+      <div className="ds-sticky-bar">
+        <div className="ds-sticky-inner">
+          <span className="ds-sticky-core">Core Deal: {fmt(deal.coreDealValue)}</span>
+          <div className="ds-sticky-total">
+            <span className="ds-sticky-total-label">TOTAL DEAL VALUE</span>
+            <span className="ds-sticky-total-value">{fmt(deal.totalDealValue)}</span>
+          </div>
+          <a href={BRAND_NAV[brand]?.ctaHref || '#'} className="ds-sticky-cta">GET YOUR OFFICIAL OFFER →</a>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="deal-share-footer">
-        <div className="deal-share-footer-brand">{brand}</div>
-        <p>This is an exploratory tool. Final terms are subject to negotiation and formal agreement.</p>
-      </footer>
+      {/* Footer spacer for sticky bar */}
+      <div className="ds-footer-spacer" />
     </div>
   );
 }
