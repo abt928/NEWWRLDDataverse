@@ -77,6 +77,7 @@ function BrandLogo({ brand }: { brand: string }) {
 
 // Exclusivity multiplier labels
 const EXCL_LABELS: Record<number, string> = { 3: '-45%', 6: '-30%', 12: '', 18: '+4%', 24: '+8%' };
+const LICENSE_LABELS: Record<string, string> = { '6yr': '6 Years', '12yr': '12 Years', '20yr': '20 Years', 'perpetuity': 'Perpetuity' };
 
 export default function DealSharePage() {
   const params = useParams();
@@ -154,9 +155,6 @@ export default function DealSharePage() {
 
   if (!data || !deal) return null;
 
-  const advancePct = Math.round((deal.advanceBudget / deal.coreDealValue) * 100) || 75;
-  const marketingPct = 100 - advancePct;
-
   return (
     <div className="ds-page" data-brand={brand}>
       {/* Brand Fonts */}
@@ -220,7 +218,7 @@ export default function DealSharePage() {
             {isUnlocked('backCatalogCount') && (
               <section className="ds-card">
                 <h3>Back Catalog</h3>
-                <p className="ds-card-desc">Songs from your existing catalog to include in the deal.</p>
+                <p className="ds-card-desc">Songs from your existing catalog. Valued at {inputs.backCatalogMonthMultiple}× monthly revenue.</p>
                 <div className="ds-slider-row">
                   <span className="ds-slider-label">{inputs.backCatalogCount} of {deal.songsInCatalog} songs</span>
                   <input type="range" className="ds-range" min={getConstraint('backCatalogCount').min ?? 0}
@@ -228,13 +226,21 @@ export default function DealSharePage() {
                     value={inputs.backCatalogCount} title="Back catalog songs"
                     onChange={e => update({ backCatalogCount: +e.target.value })} />
                 </div>
+                {isUnlocked('backCatalogMonthMultiple') && (
+                  <div className="ds-slider-row">
+                    <span className="ds-slider-label">Month Multiple: {inputs.backCatalogMonthMultiple}×</span>
+                    <input type="range" className="ds-range" min={1} max={24} step={0.5}
+                      value={inputs.backCatalogMonthMultiple} title="Month multiple"
+                      onChange={e => update({ backCatalogMonthMultiple: +e.target.value })} />
+                  </div>
+                )}
                 <span className="ds-card-value">{fmt(deal.backCatalogValue)}</span>
               </section>
             )}
             {isUnlocked('frontCatalogCount') && (
               <section className="ds-card">
                 <h3>Front Catalog</h3>
-                <p className="ds-card-desc">New songs to deliver. Value per song: ${inputs.frontCatalogCount > 0 ? Math.round(deal.frontCatalogValue / inputs.frontCatalogCount) : 0}/yr. Diminishing after 8.</p>
+                <p className="ds-card-desc">New songs to deliver. Base value: ${(inputs.frontCatalogBaseValue ?? deal.suggestedFrontBaseValue).toFixed(0)}/mo × {inputs.frontCatalogMonthMultiplier}mo.</p>
                 <div className="ds-slider-row">
                   <span className="ds-slider-label">{inputs.frontCatalogCount} new songs</span>
                   <input type="range" className="ds-range" min={getConstraint('frontCatalogCount').min ?? 0}
@@ -248,8 +254,8 @@ export default function DealSharePage() {
           </div>
         )}
 
-        {/* Exclusivity + Artist Royalty — side by side */}
-        {(isUnlocked('exclusivityMonths') || isUnlocked('artistRoyaltyPct')) && (
+        {/* Exclusivity + License Period — side by side */}
+        {(isUnlocked('exclusivityMonths') || isUnlocked('licensePeriod')) && (
           <div className="ds-row-2">
             {isUnlocked('exclusivityMonths') && (
               <section className="ds-card">
@@ -266,27 +272,43 @@ export default function DealSharePage() {
                 </div>
               </section>
             )}
-            {isUnlocked('artistRoyaltyPct') && (
+            {isUnlocked('licensePeriod') && (
               <section className="ds-card">
-                <h3>Artist Royalty</h3>
-                <p className="ds-card-desc">{inputs.artistRoyaltyPct}% — Modifier: {deal.royaltyMultiplier > 1 ? '+' : ''}{((deal.royaltyMultiplier - 1) * 100).toFixed(1)}%</p>
-                <div className="ds-slider-row">
-                  <span className="ds-slider-label">{inputs.artistRoyaltyPct}%</span>
-                  <input type="range" className="ds-range" min={getConstraint('artistRoyaltyPct').min ?? 20}
-                    max={getConstraint('artistRoyaltyPct').max ?? 85}
-                    value={inputs.artistRoyaltyPct} title="Artist royalty"
-                    onChange={e => update({ artistRoyaltyPct: +e.target.value })} />
+                <h3>License Period</h3>
+                <div className="ds-toggles">
+                  {(['6yr', '12yr', '20yr', 'perpetuity'] as const).map(lp => (
+                    <button key={lp}
+                      className={`ds-toggle ${inputs.licensePeriod === lp ? 'active' : ''}`}
+                      onClick={() => update({ licensePeriod: lp })}>
+                      {LICENSE_LABELS[lp]}
+                    </button>
+                  ))}
                 </div>
               </section>
             )}
           </div>
         )}
 
+        {/* Artist Royalty */}
+        {isUnlocked('artistRoyaltyPct') && (
+          <section className="ds-card ds-card-full">
+            <h3>Artist Royalty</h3>
+            <p className="ds-card-desc">{inputs.artistRoyaltyPct}% — Modifier: {deal.royaltyMultiplier > 1 ? '+' : ''}{((deal.royaltyMultiplier - 1) * 100).toFixed(1)}%</p>
+            <div className="ds-slider-row">
+              <span className="ds-slider-label">{inputs.artistRoyaltyPct}%</span>
+              <input type="range" className="ds-range" min={getConstraint('artistRoyaltyPct').min ?? 20}
+                max={getConstraint('artistRoyaltyPct').max ?? 85}
+                value={inputs.artistRoyaltyPct} title="Artist royalty"
+                onChange={e => update({ artistRoyaltyPct: +e.target.value })} />
+            </div>
+          </section>
+        )}
+
         {/* Options */}
         {isUnlocked('optionCount') && (
           <section className="ds-card ds-card-full">
             <h3>Options</h3>
-            <p className="ds-card-desc">Each option = 4mo catalog revenue + 10 new songs</p>
+            <p className="ds-card-desc">Each option scales off {inputs.optionPct}% of front catalog value{inputs.optionDecayPct > 0 ? `, reducing ${inputs.optionDecayPct}% per additional option` : ''}</p>
             <div className="ds-toggles">
               {([0, 1, 2, 3, 4] as const).map(n => (
                 <button key={n}
@@ -294,80 +316,44 @@ export default function DealSharePage() {
                   onClick={() => update({ optionCount: n })}>{n}</button>
               ))}
             </div>
-            {inputs.optionCount > 0 && isUnlocked('optionPeriodMonths') && (
-              <div className="ds-toggles ds-toggles-sub">
-                {([8, 12, 16] as const).map(m => (
-                  <button key={m}
-                    className={`ds-toggle ${inputs.optionPeriodMonths === m ? 'active' : ''}`}
-                    onClick={() => update({ optionPeriodMonths: m })}>{m}mo period</button>
+            {deal.optionBreakdown.length > 0 && (
+              <div className="ds-payment-rows" style={{ marginTop: '0.75rem' }}>
+                {deal.optionBreakdown.map((val, i) => (
+                  <div key={i} className="ds-payment-row">
+                    <span>Option {i + 1}</span>
+                    <span className="ds-payment-val">{fmt(val)}</span>
+                  </div>
                 ))}
               </div>
             )}
           </section>
         )}
 
-        {/* Deal Structure */}
-        <section className="ds-card ds-card-full">
-          <h3>Deal Structure</h3>
-          <div className="ds-structure-cards">
-            <div className="ds-structure-card">
-              <span className="ds-structure-label">ADVANCE ({advancePct}%)</span>
-              <span className="ds-structure-value">{fmt(deal.advanceBudget)}</span>
+        {/* Publishing */}
+        {isUnlocked('publishing') && (
+          <section className="ds-card ds-card-full">
+            <h3>Publishing</h3>
+            <div className="ds-toggles">
+              {([
+                { val: 'none' as const, label: 'None' },
+                { val: 'admin25' as const, label: '25% Admin' },
+                { val: 'copub50' as const, label: '50% Co-Pub' },
+              ]).map(opt => (
+                <button key={opt.val}
+                  className={`ds-toggle ${inputs.publishing === opt.val ? 'active' : ''}`}
+                  onClick={() => update({ publishing: opt.val })}>{opt.label}</button>
+              ))}
             </div>
-            <div className="ds-structure-card">
-              <span className="ds-structure-label">MARKETING ({marketingPct}%)</span>
-              <span className="ds-structure-value">{fmt(deal.marketingBudget)}</span>
-            </div>
-          </div>
-        </section>
-
-        {/* Payment Schedule */}
-        <section className="ds-card ds-card-full">
-          <h3>Payment Schedule</h3>
-          <div className="ds-payment-rows">
-            <div className="ds-payment-row">
-              <span>On Signing</span>
-              <span className="ds-payment-val">{fmt(deal.signingPayment)}</span>
-            </div>
-            <div className="ds-payment-row">
-              <span>Back Catalog Delivery</span>
-              <span className="ds-payment-val">{fmt(deal.backCatalogDeliveryPayment)}</span>
-            </div>
-            {!inputs.allUpfront && <>
-              <div className="ds-payment-row">
-                <span>½ New Songs Delivered</span>
-                <span className="ds-payment-val">{fmt(deal.halfSongsPayment)}</span>
-              </div>
-              <div className="ds-payment-row">
-                <span>Other ½ Delivered</span>
-                <span className="ds-payment-val">{fmt(deal.otherHalfPayment)}</span>
-              </div>
-            </>}
-            {deal.allUpfrontDiscount > 0 && (
-              <div className="ds-payment-row ds-payment-row-neg">
-                <span>All-Upfront Discount</span>
-                <span className="ds-payment-val">−{fmt(deal.allUpfrontDiscount)}</span>
-              </div>
-            )}
-          </div>
-
-          {/* All upfront checkbox */}
-          {isUnlocked('allUpfront') && (
-            <label className="ds-check">
-              <input type="checkbox" checked={inputs.allUpfront}
-                onChange={e => update({ allUpfront: e.target.checked })} />
-              <span>All upfront (signing + delivery)</span>
-            </label>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* Content Budget Shift */}
         {isUnlocked('contentBudgetPct') && (
           <section className="ds-card ds-card-full">
             <h3>Content Budget Shift</h3>
-            <p className="ds-card-desc">Move funds from advance to content. 10% bonus on shifted amount.</p>
+            <p className="ds-card-desc">Allocate a portion of the deal to content creation.</p>
             <div className="ds-slider-row">
-              <span className="ds-slider-label">{inputs.contentBudgetPct}%</span>
+              <span className="ds-slider-label">{inputs.contentBudgetPct}% ({fmt(deal.contentBudget)})</span>
               <input type="range" className="ds-range" min={getConstraint('contentBudgetPct').min ?? 0}
                 max={getConstraint('contentBudgetPct').max ?? 50}
                 value={inputs.contentBudgetPct} title="Content budget"
@@ -376,79 +362,112 @@ export default function DealSharePage() {
           </section>
         )}
 
-        {/* Add-Ons + Publishing — side by side */}
-        {(isUnlocked('rightOfFirstRefusal') || isUnlocked('upstreaming') || isUnlocked('ancillaries') || isUnlocked('publishing')) && (
-          <div className="ds-row-2">
-            {/* Add-Ons */}
-            {(isUnlocked('rightOfFirstRefusal') || isUnlocked('upstreaming') || isUnlocked('ancillaries')) && (
-              <section className="ds-card">
-                <h3>Add-Ons</h3>
-                {isUnlocked('rightOfFirstRefusal') && (
-                  <label className="ds-check">
-                    <input type="checkbox" checked={inputs.rightOfFirstRefusal}
-                      onChange={e => update({ rightOfFirstRefusal: e.target.checked })} />
-                    <span>Right of First Refusal</span>
-                    <span className="ds-check-badge">+3%</span>
-                  </label>
-                )}
-                {isUnlocked('upstreaming') && (
-                  <label className="ds-check">
-                    <input type="checkbox" checked={inputs.upstreaming}
-                      onChange={e => update({ upstreaming: e.target.checked })} />
-                    <span>Upstreaming</span>
-                    <span className="ds-check-badge">+7%</span>
-                  </label>
-                )}
-                {isUnlocked('ancillaries') && (
-                  <label className="ds-check">
-                    <input type="checkbox" checked={inputs.ancillaries}
-                      onChange={e => update({ ancillaries: e.target.checked })} />
-                    <span>Non-Recorded Ancillaries</span>
-                    <span className="ds-check-badge">+3.5%</span>
-                  </label>
-                )}
-              </section>
-            )}
-
-            {/* Publishing */}
-            {isUnlocked('publishing') && (
-              <section className="ds-card">
-                <h3>Publishing</h3>
-                <div className="ds-toggles">
-                  {([
-                    { val: 'none' as const, label: 'None' },
-                    { val: 'admin25' as const, label: '25% Admin' },
-                    { val: 'copub50' as const, label: '50% Co-Pub' },
-                  ]).map(opt => (
-                    <button key={opt.val}
-                      className={`ds-toggle ${inputs.publishing === opt.val ? 'active' : ''}`}
-                      onClick={() => update({ publishing: opt.val })}>{opt.label}</button>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
+        {/* Marketing Budget */}
+        {isUnlocked('marketingBudgetPct') && (
+          <section className="ds-card ds-card-full">
+            <h3>Marketing Budget</h3>
+            <p className="ds-card-desc">Portion of total deal allocated to marketing.</p>
+            <div className="ds-slider-row">
+              <span className="ds-slider-label">{inputs.marketingBudgetPct}% ({fmt(deal.marketingBudgetValue)})</span>
+              <input type="range" className="ds-range" min={getConstraint('marketingBudgetPct').min ?? 5}
+                max={getConstraint('marketingBudgetPct').max ?? 30}
+                value={inputs.marketingBudgetPct} title="Marketing budget"
+                onChange={e => update({ marketingBudgetPct: +e.target.value })} />
+            </div>
+          </section>
         )}
 
         {/* Goodwill Bonus */}
-        {deal.goodwillBonus > 0 && (
+        {deal.goodwillValue > 0 && (
           <section className="ds-card ds-card-full ds-card-bonus">
             <h3>✦ Partnership Bonus</h3>
             <div className="ds-payment-rows">
               <div className="ds-payment-row">
-                <span>Special Bonus</span>
-                <span className="ds-payment-val ds-payment-val-bonus">+{fmt(deal.goodwillBonus)}</span>
+                <span>Goodwill Bonus (+{inputs.goodwillBonusPct}%)</span>
+                <span className="ds-payment-val ds-payment-val-bonus">+{fmt(deal.goodwillValue)}</span>
               </div>
             </div>
           </section>
         )}
+
+        {/* Deal Add-Ons (ROFR, Upstreaming, Ancillaries) */}
+        {(deal.rofrBonus > 0 || deal.upstreamingValue > 0 || deal.ancillariesValue > 0) && (
+          <section className="ds-card ds-card-full">
+            <h3>Deal Add-Ons</h3>
+            <div className="ds-payment-rows">
+              {deal.rofrBonus > 0 && (
+                <div className="ds-payment-row">
+                  <span>Right of First Refusal</span>
+                  <span className="ds-payment-val">+{fmt(deal.rofrBonus)}</span>
+                </div>
+              )}
+              {deal.upstreamingValue > 0 && (
+                <div className="ds-payment-row">
+                  <span>Upstreaming</span>
+                  <span className="ds-payment-val">+{fmt(deal.upstreamingValue)}</span>
+                </div>
+              )}
+              {deal.ancillariesValue > 0 && (
+                <div className="ds-payment-row">
+                  <span>Ancillaries</span>
+                  <span className="ds-payment-val">+{fmt(deal.ancillariesValue)}</span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* All Upfront Discount */}
+        {deal.allUpfrontDiscount > 0 && (
+          <section className="ds-card ds-card-full">
+            <h3>All Upfront Discount</h3>
+            <div className="ds-payment-rows">
+              <div className="ds-payment-row ds-payment-row-neg">
+                <span>All Upfront</span>
+                <span className="ds-payment-val">−{fmt(deal.allUpfrontDiscount)}</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Payment Schedule */}
+        <section className="ds-card ds-card-full">
+          <h3>Payment Schedule</h3>
+          <div className="ds-payment-rows">
+            {inputs.allUpfront ? (
+              <div className="ds-payment-row">
+                <span>Full Payment (Signing)</span>
+                <span className="ds-payment-val">{fmt(deal.signingPayment)}</span>
+              </div>
+            ) : (
+              <>
+                <div className="ds-payment-row">
+                  <span>Signing</span>
+                  <span className="ds-payment-val">{fmt(deal.signingPayment)}</span>
+                </div>
+                <div className="ds-payment-row">
+                  <span>Back Catalog Delivery</span>
+                  <span className="ds-payment-val">{fmt(deal.backCatalogDeliveryPayment)}</span>
+                </div>
+                <div className="ds-payment-row">
+                  <span>½ New Songs</span>
+                  <span className="ds-payment-val">{fmt(deal.halfSongsPayment)}</span>
+                </div>
+                <div className="ds-payment-row">
+                  <span>Other ½</span>
+                  <span className="ds-payment-val">{fmt(deal.otherHalfPayment)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
 
       </main>
 
       {/* ── Sticky Footer Bar ── */}
       <div className="ds-sticky-bar">
         <div className="ds-sticky-inner">
-          <span className="ds-sticky-core">Core Deal: {fmt(deal.coreDealValue)}</span>
+          <span className="ds-sticky-core">Base Deal: {fmt(deal.baseOfferValue)}</span>
           <div className="ds-sticky-total">
             <span className="ds-sticky-total-label">TOTAL DEAL VALUE</span>
             <span className="ds-sticky-total-value">{fmt(deal.totalDealValue)}</span>

@@ -12,17 +12,16 @@ interface OfferCalculatorPanelProps {
 
 const UNLOCKABLE_FIELDS = [
   { key: 'backCatalogCount', label: 'Back Catalog' },
+  { key: 'backCatalogMonthMultiple', label: 'Month Multiple' },
   { key: 'frontCatalogCount', label: 'Front Catalog' },
+  { key: 'frontCatalogBaseValue', label: 'Front Base Value' },
   { key: 'exclusivityMonths', label: 'Exclusivity' },
+  { key: 'licensePeriod', label: 'License Period' },
   { key: 'artistRoyaltyPct', label: 'Artist Royalty' },
   { key: 'optionCount', label: 'Options' },
-  { key: 'optionPeriodMonths', label: 'Option Period' },
   { key: 'publishing', label: 'Publishing' },
   { key: 'contentBudgetPct', label: 'Content Budget' },
-  { key: 'rightOfFirstRefusal', label: 'ROFR' },
-  { key: 'upstreaming', label: 'Upstreaming' },
-  { key: 'ancillaries', label: 'Ancillaries' },
-  { key: 'allUpfront', label: 'All Upfront' },
+  { key: 'marketingBudgetPct', label: 'Marketing Budget' },
 ];
 
 const FORMULA_FIELDS: { key: keyof FormulaOverrides; label: string; group: string; pct?: boolean; step?: number }[] = [
@@ -31,24 +30,23 @@ const FORMULA_FIELDS: { key: keyof FormulaOverrides; label: string; group: strin
   { key: 'exclusivity12mo', label: '12 months', group: 'Exclusivity Multipliers', step: 0.01 },
   { key: 'exclusivity18mo', label: '18 months', group: 'Exclusivity Multipliers', step: 0.01 },
   { key: 'exclusivity24mo', label: '24 months', group: 'Exclusivity Multipliers', step: 0.01 },
+  { key: 'license6yr', label: '6 years', group: 'License Period Multipliers', step: 0.01 },
+  { key: 'license12yr', label: '12 years', group: 'License Period Multipliers', step: 0.01 },
+  { key: 'license20yr', label: '20 years', group: 'License Period Multipliers', step: 0.01 },
+  { key: 'licensePerpetual', label: 'Perpetuity', group: 'License Period Multipliers', step: 0.01 },
   { key: 'royaltyDecreasePerTen', label: 'Decrease per 10% below 50', group: 'Royalty Formula', pct: true, step: 0.01 },
   { key: 'royaltyIncreasePer1', label: 'Increase per 1% above 50', group: 'Royalty Formula', step: 0.0005 },
-  { key: 'rofrPct', label: 'ROFR Bonus', group: 'Deal Bonuses', pct: true, step: 0.005 },
-  { key: 'upstreamingPct', label: 'Upstreaming', group: 'Deal Bonuses', pct: true, step: 0.005 },
-  { key: 'ancillariesPct', label: 'Ancillaries', group: 'Deal Bonuses', pct: true, step: 0.005 },
-  { key: 'advanceSplitPct', label: 'Advance Split', group: 'Budget Split', pct: true, step: 0.05 },
-  { key: 'contentBonusPct', label: 'Content Budget Bonus', group: 'Budget Split', pct: true, step: 0.01 },
-  { key: 'allUpfrontDiscountPct', label: 'All-Upfront Discount', group: 'Budget Split', pct: true, step: 0.01 },
-  { key: 'optionPeriod8mo', label: '8 months', group: 'Option Period Multipliers', step: 0.01 },
-  { key: 'optionPeriod12mo', label: '12 months', group: 'Option Period Multipliers', step: 0.01 },
-  { key: 'optionPeriod16mo', label: '16 months', group: 'Option Period Multipliers', step: 0.01 },
   { key: 'publishingAdminPct', label: 'Admin Rate', group: 'Publishing', pct: true, step: 0.01 },
   { key: 'publishingCopubMultiplier', label: 'Co-Pub Multiplier', group: 'Publishing', step: 0.1 },
-  { key: 'bigSongBonusPerSong', label: 'Per-Song Bonus', group: 'Big Song Bonus', pct: true, step: 0.005 },
-  { key: 'bigSongBonusMax', label: 'Max Bonus Cap', group: 'Big Song Bonus', pct: true, step: 0.01 },
-  { key: 'frontDiminishPerSong', label: 'Per-Song Reduction', group: 'Front Catalog Diminishing', pct: true, step: 0.005 },
-  { key: 'frontDiminishFloor', label: 'Minimum Floor', group: 'Front Catalog Diminishing', pct: true, step: 0.05 },
-  { key: 'frontDiminishAfter', label: 'Start After Song #', group: 'Front Catalog Diminishing', step: 1 },
+  { key: 'frontCatalogOutlierPct', label: 'Outlier Threshold', group: 'Front Catalog', pct: true, step: 0.01 },
+  { key: 'marketingBudgetMinPct', label: 'Min %', group: 'Marketing Constraints', step: 1 },
+  { key: 'marketingBudgetMaxPct', label: 'Max %', group: 'Marketing Constraints', step: 1 },
+  { key: 'rofrPct', label: 'ROFR %', group: 'Deal Add-Ons', pct: true, step: 0.01 },
+  { key: 'upstreamingPct', label: 'Upstreaming %', group: 'Deal Add-Ons', pct: true, step: 0.01 },
+  { key: 'ancillariesPct', label: 'Ancillaries %', group: 'Deal Add-Ons', pct: true, step: 0.005 },
+  { key: 'allUpfrontDiscountPct', label: 'All-Upfront Discount', group: 'Payment Structure', pct: true, step: 0.01 },
+  { key: 'contentBonusPct', label: 'Content Bonus %', group: 'Payment Structure', pct: true, step: 0.01 },
+  { key: 'advanceSplitPct', label: 'Advance Split %', group: 'Payment Structure', pct: true, step: 0.05 },
 ];
 
 const fmt = (n: number) => {
@@ -74,7 +72,7 @@ function InlineFormulaFields({ fields, overrides, onChange }: {
   const step = (f: typeof FORMULA_FIELDS[number], dir: 1 | -1) => {
     const s = f.step ?? 0.01;
     const cur = overrides[f.key] as number;
-    const next = Math.round((cur + s * dir) * 10000) / 10000; // avoid float drift
+    const next = Math.round((cur + s * dir) * 10000) / 10000;
     onChange(f.key, Math.max(0, next));
   };
   return (
@@ -97,12 +95,12 @@ function InlineFormulaFields({ fields, overrides, onChange }: {
     </div>
   );
 }
-
 export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalculatorPanelProps) {
   const [inputs, setInputs] = useState<DealInputs>(DEFAULT_INPUTS);
   const [tuneSection, setTuneSection] = useState<string | null>(null);
   const [decayRate, setDecayRate] = useState(10);
   const [overrides, setOverrides] = useState<FormulaOverrides>({ ...DEFAULT_OVERRIDES });
+  const [showSongList, setShowSongList] = useState(false);
   const hasAnyOverride = useMemo(() => {
     return (Object.keys(DEFAULT_OVERRIDES) as (keyof FormulaOverrides)[]).some(k => overrides[k] !== DEFAULT_OVERRIDES[k]);
   }, [overrides]);
@@ -164,13 +162,11 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
 
   const fanChartData = useMemo(() => {
     const data: { label: string; historical?: number; optimistic?: number; base?: number; pessimistic?: number; severe?: number; isProjected: boolean }[] = [];
-    // Historical from DK monthly
     const hist = [...monthlyData].sort((a, b) => a.month.localeCompare(b.month)).slice(-18);
     for (const m of hist) {
       const [y, mo] = m.month.split('-');
       data.push({ label: `${MONTHS_SHORT[parseInt(mo, 10) - 1]} ${y.slice(2)}`, historical: m.streams, isProjected: false });
     }
-    // Projected 24 months
     if (annualStreams > 0) {
       const now = new Date();
       let baseStreams = hist.length > 0 ? hist[hist.length - 1].streams : annualStreams / 12;
@@ -194,7 +190,6 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
 
   const todayIndex = fanChartData.findIndex(d => d.isProjected);
 
-  // ROI scenarios
   const scenarios = useMemo(() => {
     if (!deal || cpm <= 0 || annualStreams <= 0) return null;
     const cost = acquisitionCost;
@@ -243,9 +238,28 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
       </div>
     );
   }
-
   return (
     <div className="calc-panel">
+      {/* ── Data Range Selector ── */}
+      <div className="calc-panel-datarange">
+        <span className="calc-panel-datarange-label">Data Range:</span>
+        <div className="calc-panel-toggles">
+          {(['3M', '6M', '12M', 'YTD', 'ALL', 'custom'] as const).map(r => (
+            <button key={r} className={`calc-panel-toggle ${inputs.dataRange === r ? 'active' : ''}`}
+              onClick={() => update({ dataRange: r })}>{r === 'custom' ? 'Custom' : r}</button>
+          ))}
+        </div>
+        {inputs.dataRange === 'custom' && (
+          <div className="calc-panel-custom-range">
+            <input type="month" value={inputs.dataRangeStart || ''} title="Start month"
+              onChange={e => update({ dataRangeStart: e.target.value || null })} />
+            <span>→</span>
+            <input type="month" value={inputs.dataRangeEnd || ''} title="End month"
+              onChange={e => update({ dataRangeEnd: e.target.value || null })} />
+          </div>
+        )}
+      </div>
+
       {/* ── KPI Row ── */}
       {deal && (
         <div className="calc-panel-kpis">
@@ -309,8 +323,38 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
               <input type="range" min={0} max={deal?.songsInCatalog ?? songData.length} title="Back catalog songs"
                 value={inputs.backCatalogCount} onChange={e => update({ backCatalogCount: +e.target.value })} />
             </div>
+            {/* Monthly Multiple */}
+            <div className="calc-panel-slider-wrap">
+              <label>Month Multiple: {inputs.backCatalogMonthMultiple}×</label>
+              <input type="range" min={1} max={24} step={0.01} value={inputs.backCatalogMonthMultiple} title="Monthly multiple"
+                onChange={e => update({ backCatalogMonthMultiple: +e.target.value })} />
+            </div>
+            {/* Sort Order Toggle */}
+            <div className="calc-panel-toggles calc-panel-sub">
+              <button className={`calc-panel-toggle ${inputs.backCatalogSortOrder === 'low-high' ? 'active' : ''}`}
+                onClick={() => update({ backCatalogSortOrder: 'low-high' })}>Low → High</button>
+              <button className={`calc-panel-toggle ${inputs.backCatalogSortOrder === 'high-low' ? 'active' : ''}`}
+                onClick={() => update({ backCatalogSortOrder: 'high-low' })}>High → Low</button>
+            </div>
+            {/* Song Visibility Dropdown */}
+            {deal && deal.backCatalogSongsIncluded.length > 0 && (
+              <div className="calc-panel-song-dropdown">
+                <button className="calc-panel-song-dropdown-btn" onClick={() => setShowSongList(!showSongList)}>
+                  {showSongList ? '▾' : '▸'} {deal.backCatalogSongsIncluded.length} songs included
+                </button>
+                {showSongList && (
+                  <ul className="calc-panel-song-list">
+                    {deal.backCatalogSongsIncluded.map((t, i) => <li key={i}>{t}</li>)}
+                  </ul>
+                )}
+              </div>
+            )}
             {tuneSection === 'back' && (
-              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Big Song Bonus')} overrides={overrides} onChange={updateOverride} />
+              <div className="calc-panel-inline-settings">
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Sort order and month multiple are the only controls for back catalog valuation.</span>
+                </div>
+              </div>
             )}
           </div>
 
@@ -328,8 +372,41 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
               <input type="range" min={0} max={30} value={inputs.frontCatalogCount} title="Front catalog songs"
                 onChange={e => update({ frontCatalogCount: +e.target.value })} />
             </div>
+            {/* Base Value Override */}
+            <div className="calc-panel-slider-wrap">
+              <label>Base Value/mo: {inputs.frontCatalogBaseValue !== null ? `$${inputs.frontCatalogBaseValue.toFixed(2)} (override)` : `$${(deal?.suggestedFrontBaseValue ?? 0).toFixed(2)} (suggested)`}</label>
+              <div className="calc-panel-formula-stepper" style={{ marginTop: '0.25rem' }}>
+                <button className="calc-panel-formula-stepper-btn" onClick={() => update({ frontCatalogBaseValue: null })} title="Use suggested">Auto</button>
+                <input type="number" step={1} min={0} title="Front catalog base value"
+                  value={inputs.frontCatalogBaseValue ?? deal?.suggestedFrontBaseValue ?? 0}
+                  onChange={e => update({ frontCatalogBaseValue: +e.target.value })} />
+              </div>
+            </div>
+            {/* Month Multiplier */}
+            <div className="calc-panel-slider-wrap">
+              <label>Month Multiplier: {inputs.frontCatalogMonthMultiplier}×</label>
+              <input type="range" min={1} max={24} step={1} value={inputs.frontCatalogMonthMultiplier} title="Front month multiplier"
+                onChange={e => update({ frontCatalogMonthMultiplier: +e.target.value })} />
+            </div>
             {tuneSection === 'front' && (
-              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Front Catalog Diminishing')} overrides={overrides} onChange={updateOverride} />
+              <div className="calc-panel-inline-settings">
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Deterioration Start (Song #)</span>
+                  <div className="calc-panel-formula-input">
+                    <input type="number" min={1} max={30} step={1} value={inputs.frontCatalogDeteriorationStart}
+                      onChange={e => update({ frontCatalogDeteriorationStart: +e.target.value })} />
+                  </div>
+                </div>
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Deterioration %</span>
+                  <div className="calc-panel-formula-input">
+                    <input type="number" min={0} max={50} step={1} value={inputs.frontCatalogDeteriorationPct}
+                      onChange={e => update({ frontCatalogDeteriorationPct: +e.target.value })} />
+                    <span className="calc-panel-formula-pct">({inputs.frontCatalogDeteriorationPct}%/song)</span>
+                  </div>
+                </div>
+                <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Front Catalog')} overrides={overrides} onChange={updateOverride} />
+              </div>
             )}
           </div>
 
@@ -350,6 +427,26 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
             </div>
             {tuneSection === 'excl' && (
               <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Exclusivity Multipliers')} overrides={overrides} onChange={updateOverride} />
+            )}
+          </div>
+
+          {/* License Period (NEW) */}
+          <div className="calc-panel-ctrl">
+            <div className="calc-panel-ctrl-head">
+              <span>License Period</span>
+              <div className="calc-panel-ctrl-right">
+                {deal && <span className="calc-panel-ctrl-value">×{deal.licensePeriodMultiplier.toFixed(2)}</span>}
+                <button className={`calc-panel-tune-btn ${tuneSection === 'license' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'license' ? null : 'license')} title="Tune formula">⚙</button>
+              </div>
+            </div>
+            <div className="calc-panel-toggles">
+              {([{ val: '6yr' as const, label: '6 Years' }, { val: '12yr' as const, label: '12 Years' }, { val: '20yr' as const, label: '20 Years' }, { val: 'perpetuity' as const, label: 'Perpetuity' }]).map(opt => (
+                <button key={opt.val} className={`calc-panel-toggle ${inputs.licensePeriod === opt.val ? 'active' : ''}`}
+                  onClick={() => update({ licensePeriod: opt.val })}>{opt.label}</button>
+              ))}
+            </div>
+            {tuneSection === 'license' && (
+              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'License Period Multipliers')} overrides={overrides} onChange={updateOverride} />
             )}
           </div>
 
@@ -377,7 +474,6 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
               <span>Options</span>
               <div className="calc-panel-ctrl-right">
                 {deal && deal.totalOptionsValue > 0 && <span className="calc-panel-ctrl-value">{fmt(deal.totalOptionsValue)}</span>}
-                <button className={`calc-panel-tune-btn ${tuneSection === 'options' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'options' ? null : 'options')} title="Tune formula">⚙</button>
               </div>
             </div>
             <div className="calc-panel-toggles">
@@ -387,15 +483,42 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
               ))}
             </div>
             {inputs.optionCount > 0 && (
-              <div className="calc-panel-toggles calc-panel-sub">
-                {([8, 12, 16] as const).map(m => (
-                  <button key={m} className={`calc-panel-toggle ${inputs.optionPeriodMonths === m ? 'active' : ''}`}
-                    onClick={() => update({ optionPeriodMonths: m })}>{m}mo period</button>
-                ))}
+              <div className="calc-panel-inline-settings">
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Base Value</span>
+                  <div className="calc-panel-formula-input">
+                    <div className="calc-panel-formula-stepper">
+                      <button className="calc-panel-formula-stepper-btn" onClick={() => update({ optionBaseValue: null })} title="Use front catalog">Auto</button>
+                      <input type="number" step={100} min={0} title="Option base value"
+                        value={inputs.optionBaseValue ?? deal?.frontCatalogValue ?? 0}
+                        onChange={e => update({ optionBaseValue: +e.target.value })} />
+                    </div>
+                    {inputs.optionBaseValue === null && <span className="calc-panel-formula-pct">(= Front Catalog)</span>}
+                  </div>
+                </div>
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Option %</span>
+                  <div className="calc-panel-formula-input">
+                    <input type="number" step={5} min={0} max={200} value={inputs.optionPct}
+                      onChange={e => update({ optionPct: +e.target.value })} />
+                    <span className="calc-panel-formula-pct">({inputs.optionPct}%)</span>
+                  </div>
+                </div>
+                <div className="calc-panel-formula-row">
+                  <span className="calc-panel-formula-label">Decay %</span>
+                  <div className="calc-panel-formula-input">
+                    <input type="number" step={5} min={0} max={100} value={inputs.optionDecayPct}
+                      onChange={e => update({ optionDecayPct: +e.target.value })} />
+                    <span className="calc-panel-formula-pct">({inputs.optionDecayPct}%/option)</span>
+                  </div>
+                </div>
+                {deal && deal.optionBreakdown.length > 0 && (
+                  <div className="calc-panel-formula-row">
+                    <span className="calc-panel-formula-label">Breakdown</span>
+                    <span className="calc-panel-formula-pct">{deal.optionBreakdown.map((v, i) => `Opt ${i+1}: ${fmt(v)}`).join(' · ')}</span>
+                  </div>
+                )}
               </div>
-            )}
-            {tuneSection === 'options' && (
-              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Option Period Multipliers')} overrides={overrides} onChange={updateOverride} />
             )}
           </div>
 
@@ -427,130 +550,186 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
           <div className="calc-panel-ctrl">
             <div className="calc-panel-ctrl-head">
               <span>Content Budget</span>
-              <div className="calc-panel-ctrl-right">
-                <span className="calc-panel-ctrl-value">{inputs.contentBudgetPct}%</span>
-                <button className={`calc-panel-tune-btn ${tuneSection === 'budget' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'budget' ? null : 'budget')} title="Tune formula">⚙</button>
-              </div>
+              <span className="calc-panel-ctrl-value">{inputs.contentBudgetPct}%{deal ? ` (${fmt(deal.contentBudget)})` : ''}</span>
             </div>
             <div className="calc-panel-slider-wrap">
               <input type="range" min={0} max={50} value={inputs.contentBudgetPct} title="Content budget"
                 onChange={e => update({ contentBudgetPct: +e.target.value })} />
             </div>
-            {tuneSection === 'budget' && (
-              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Budget Split')} overrides={overrides} onChange={updateOverride} />
-            )}
           </div>
 
-          {/* Deal Add-ons */}
-          <div className="calc-panel-ctrl calc-panel-ctrl-checks">
+          {/* Marketing Budget (NEW) */}
+          <div className="calc-panel-ctrl">
             <div className="calc-panel-ctrl-head">
-              <span>Deal Add-ons</span>
+              <span>Marketing Budget</span>
               <div className="calc-panel-ctrl-right">
-                <button className={`calc-panel-tune-btn ${tuneSection === 'bonuses' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'bonuses' ? null : 'bonuses')} title="Tune formula">⚙</button>
+                <span className="calc-panel-ctrl-value">{inputs.marketingBudgetPct}%{deal ? ` (${fmt(deal.marketingBudgetValue)})` : ''}</span>
+                <button className={`calc-panel-tune-btn ${tuneSection === 'marketing' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'marketing' ? null : 'marketing')} title="Tune constraints">⚙</button>
               </div>
             </div>
-            <label className="calc-panel-check">
-              <input type="checkbox" checked={inputs.rightOfFirstRefusal}
-                onChange={e => update({ rightOfFirstRefusal: e.target.checked })} />
-              <span>Right of First Refusal <em>(+{((overrides.rofrPct) * 100).toFixed(0)}%)</em></span>
-            </label>
-            <label className="calc-panel-check">
-              <input type="checkbox" checked={inputs.upstreaming}
-                onChange={e => update({ upstreaming: e.target.checked })} />
-              <span>Upstreaming <em>(+{((overrides.upstreamingPct) * 100).toFixed(0)}%)</em></span>
-            </label>
-            <label className="calc-panel-check">
-              <input type="checkbox" checked={inputs.ancillaries}
-                onChange={e => update({ ancillaries: e.target.checked })} />
-              <span>Ancillaries <em>(+{((overrides.ancillariesPct) * 100).toFixed(1)}%)</em></span>
-            </label>
-            <label className="calc-panel-check">
-              <input type="checkbox" checked={inputs.allUpfront}
-                onChange={e => update({ allUpfront: e.target.checked })} />
-              <span>All Upfront <em>(−{((overrides.allUpfrontDiscountPct) * 100).toFixed(0)}%)</em></span>
-            </label>
-            {tuneSection === 'bonuses' && (
-              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Deal Bonuses' || f.group === 'Budget Split')} overrides={overrides} onChange={updateOverride} />
+            <div className="calc-panel-slider-wrap">
+              <label>Allocates portion of total deal to marketing</label>
+              <input type="range" min={overrides.marketingBudgetMinPct} max={overrides.marketingBudgetMaxPct}
+                step={1} value={inputs.marketingBudgetPct} title="Marketing budget"
+                onChange={e => update({ marketingBudgetPct: +e.target.value })} />
+            </div>
+            {tuneSection === 'marketing' && (
+              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Marketing Constraints')} overrides={overrides} onChange={updateOverride} />
             )}
           </div>
 
-          {/* Goodwill Bonus */}
+          {/* Goodwill Bonus (reworked to %) */}
           <div className="calc-panel-ctrl">
             <div className="calc-panel-ctrl-head">
               <span>Goodwill Bonus</span>
-              <span className="calc-panel-ctrl-value">{fmt(inputs.goodwillBonus || 0)}</span>
+              <span className="calc-panel-ctrl-value">{inputs.goodwillBonusPct}%{deal ? ` (${fmt(deal.goodwillValue)})` : ''}</span>
             </div>
             <div className="calc-panel-slider-wrap">
-              <label>Appears to artist as a bonus gesture</label>
-              <input type="range" min={0} max={5000} step={50} value={inputs.goodwillBonus || 0} title="Goodwill bonus"
-                onChange={e => update({ goodwillBonus: +e.target.value })} />
+              <label>Global % multiplier applied to total deal</label>
+              <input type="range" min={0} max={20} step={0.5} value={inputs.goodwillBonusPct || 0} title="Goodwill bonus %"
+                onChange={e => update({ goodwillBonusPct: +e.target.value })} />
             </div>
           </div>
-        </div>
 
+          {/* Deal Add-Ons (preserved) */}
+          <div className="calc-panel-ctrl">
+            <div className="calc-panel-ctrl-head">
+              <span>Deal Add-Ons</span>
+              <div className="calc-panel-ctrl-right">
+                <button className={`calc-panel-tune-btn ${tuneSection === 'addons' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'addons' ? null : 'addons')} title="Tune formula">⚙</button>
+              </div>
+            </div>
+            <div className="calc-panel-ctrl-checks">
+              <label className="calc-panel-check">
+                <input type="checkbox" checked={inputs.rightOfFirstRefusal} onChange={e => update({ rightOfFirstRefusal: e.target.checked })} />
+                <span>Right of First Refusal</span><em>(+{((overrides.rofrPct) * 100).toFixed(0)}%)</em>
+              </label>
+              <label className="calc-panel-check">
+                <input type="checkbox" checked={inputs.upstreaming} onChange={e => update({ upstreaming: e.target.checked })} />
+                <span>Upstreaming</span><em>(+{((overrides.upstreamingPct) * 100).toFixed(0)}%)</em>
+              </label>
+              <label className="calc-panel-check">
+                <input type="checkbox" checked={inputs.ancillaries} onChange={e => update({ ancillaries: e.target.checked })} />
+                <span>Ancillaries</span><em>(+{((overrides.ancillariesPct) * 100).toFixed(1)}%)</em>
+              </label>
+            </div>
+            {tuneSection === 'addons' && (
+              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Deal Add-Ons')} overrides={overrides} onChange={updateOverride} />
+            )}
+          </div>
+
+          {/* Payment Structure (preserved) */}
+          <div className="calc-panel-ctrl">
+            <div className="calc-panel-ctrl-head">
+              <span>Payment Structure</span>
+              <div className="calc-panel-ctrl-right">
+                <button className={`calc-panel-tune-btn ${tuneSection === 'payment' ? 'active' : ''}`} onClick={() => setTuneSection(tuneSection === 'payment' ? null : 'payment')} title="Tune formula">⚙</button>
+              </div>
+            </div>
+            <label className="calc-panel-check">
+              <input type="checkbox" checked={inputs.allUpfront} onChange={e => update({ allUpfront: e.target.checked })} />
+              <span>All Upfront</span><em>(−{((overrides.allUpfrontDiscountPct) * 100).toFixed(0)}%)</em>
+            </label>
+            {tuneSection === 'payment' && (
+              <InlineFormulaFields fields={FORMULA_FIELDS.filter(f => f.group === 'Payment Structure')} overrides={overrides} onChange={updateOverride} />
+            )}
+          </div>
+        </div>
         {/* ── RIGHT: Deal Breakdown ── */}
         {deal && (
           <div className="calc-panel-breakdown">
             <h3 className="calc-panel-section-title">Deal Breakdown</h3>
 
             <div className="calc-panel-section">
-              <h4>Core Deal</h4>
-              <div className="calc-panel-row"><span>Back Catalog</span><span>{fmt(deal.backCatalogValue)}</span></div>
-              <div className="calc-panel-row"><span>Front Catalog</span><span>{fmt(deal.frontCatalogValue)}</span></div>
+              <h4>Base Deal</h4>
+              <div className="calc-panel-row"><span>Back Catalog ({inputs.backCatalogCount} songs × {inputs.backCatalogMonthMultiple}× monthly)</span><span>{fmt(deal.backCatalogValue)}</span></div>
+              <div className="calc-panel-row"><span>Front Catalog ({inputs.frontCatalogCount} songs × {inputs.frontCatalogMonthMultiplier}mo)</span><span>{fmt(deal.frontCatalogValue)}</span></div>
               <div className="calc-panel-row calc-panel-row-sub"><span>Base Offer</span><span>{fmt(deal.baseOfferValue)}</span></div>
             </div>
+
+            {deal.totalOptionsValue > 0 && (
+              <div className="calc-panel-section">
+                <h4>Options</h4>
+                {deal.optionBreakdown.map((val, i) => (
+                  <div key={i} className="calc-panel-row"><span>Option {i + 1} ({i === 0 ? `${inputs.optionPct}%` : `−${inputs.optionDecayPct}%`})</span><span>+{fmt(val)}</span></div>
+                ))}
+                <div className="calc-panel-row calc-panel-row-sub"><span>Subtotal</span><span>{fmt(deal.subtotalBeforeModifiers)}</span></div>
+              </div>
+            )}
 
             <div className="calc-panel-section">
               <h4>Modifiers</h4>
               <div className="calc-panel-row"><span>Exclusivity ({inputs.exclusivityMonths}mo) ×{deal.exclusivityMultiplier.toFixed(2)}</span><span>{fmt(deal.postExclusivityValue)}</span></div>
               <div className="calc-panel-row"><span>Royalty ({inputs.artistRoyaltyPct}%) ×{deal.royaltyMultiplier.toFixed(2)}</span><span>{fmt(deal.postRoyaltyValue)}</span></div>
-              {deal.rofrBonus > 0 && <div className="calc-panel-row"><span>ROFR Bonus</span><span>+{fmt(deal.rofrBonus)}</span></div>}
-              <div className="calc-panel-row calc-panel-row-sub"><span>Core Deal Value</span><span>{fmt(deal.coreDealValue)}</span></div>
-            </div>
-
-            <div className="calc-panel-section">
-              <h4>Budget Split (75 / 25)</h4>
-              <div className="calc-panel-row"><span>Advance</span><span>{fmt(deal.advanceBudget)}</span></div>
-              <div className="calc-panel-row"><span>Marketing</span><span>{fmt(deal.marketingBudget)}</span></div>
-              {deal.contentBudget > 0 && <>
-                <div className="calc-panel-row"><span>Content Budget (+10% bonus)</span><span>{fmt(deal.contentBudget)}</span></div>
-                <div className="calc-panel-row"><span>Adjusted Advance</span><span>{fmt(deal.adjustedAdvance)}</span></div>
-              </>}
-            </div>
-
-            <div className="calc-panel-section">
-              <h4>Payment Schedule</h4>
-              <div className="calc-panel-row"><span>Signing (25%)</span><span>{fmt(deal.signingPayment)}</span></div>
-              <div className="calc-panel-row"><span>Back Delivery (25%)</span><span>{fmt(deal.backCatalogDeliveryPayment)}</span></div>
-              {!inputs.allUpfront && <>
-                <div className="calc-panel-row"><span>½ New Songs</span><span>{fmt(deal.halfSongsPayment)}</span></div>
-                <div className="calc-panel-row"><span>Other ½ Songs</span><span>{fmt(deal.otherHalfPayment)}</span></div>
-              </>}
-              {deal.allUpfrontDiscount > 0 && (
-                <div className="calc-panel-row calc-panel-row-negative"><span>All-Upfront Discount</span><span>−{fmt(deal.allUpfrontDiscount)}</span></div>
+              <div className="calc-panel-row"><span>License ({inputs.licensePeriod}) ×{deal.licensePeriodMultiplier.toFixed(2)}</span><span>{fmt(deal.postLicenseValue)}</span></div>
+              {deal.goodwillValue > 0 && (
+                <div className="calc-panel-row"><span>Goodwill (+{inputs.goodwillBonusPct}%)</span><span>+{fmt(deal.goodwillValue)}</span></div>
               )}
             </div>
 
-            {(deal.totalOptionsValue > 0 || deal.publishingValue > 0 || deal.upstreamingValue > 0 || deal.ancillariesValue > 0) && (
+            {deal.publishingValue > 0 && (
               <div className="calc-panel-section">
-                <h4>Additional Value</h4>
-                {deal.totalOptionsValue > 0 && <div className="calc-panel-row"><span>{inputs.optionCount} Options ({inputs.optionPeriodMonths}mo)</span><span>+{fmt(deal.totalOptionsValue)}</span></div>}
-                {deal.publishingValue > 0 && <div className="calc-panel-row"><span>Publishing</span><span>+{fmt(deal.publishingValue)}</span></div>}
-                {deal.upstreamingValue > 0 && <div className="calc-panel-row"><span>Upstreaming (7%)</span><span>+{fmt(deal.upstreamingValue)}</span></div>}
-                {deal.ancillariesValue > 0 && <div className="calc-panel-row"><span>Ancillaries (3.5%)</span><span>+{fmt(deal.ancillariesValue)}</span></div>}
+                <h4>Publishing</h4>
+                <div className="calc-panel-row"><span>{inputs.publishing === 'admin25' ? '25% Admin' : '50% Co-Pub'}</span><span>+{fmt(deal.publishingValue)}</span></div>
               </div>
             )}
 
-            {deal.goodwillBonus > 0 && (
+            {deal.marketingBudgetValue > 0 && (
               <div className="calc-panel-section">
-                <h4>Bonus</h4>
-                <div className="calc-panel-row"><span>Goodwill Bonus</span><span>+{fmt(deal.goodwillBonus)}</span></div>
+                <h4>Marketing Budget</h4>
+                <div className="calc-panel-row"><span>{inputs.marketingBudgetPct}% of total deal</span><span>{fmt(deal.marketingBudgetValue)}</span></div>
+              </div>
+            )}
+
+            {(deal.rofrBonus > 0 || deal.upstreamingValue > 0 || deal.ancillariesValue > 0) && (
+              <div className="calc-panel-section">
+                <h4>Deal Add-Ons</h4>
+                {deal.rofrBonus > 0 && <div className="calc-panel-row"><span>ROFR (+{(overrides.rofrPct * 100).toFixed(0)}%)</span><span>+{fmt(deal.rofrBonus)}</span></div>}
+                {deal.upstreamingValue > 0 && <div className="calc-panel-row"><span>Upstreaming (+{(overrides.upstreamingPct * 100).toFixed(0)}%)</span><span>+{fmt(deal.upstreamingValue)}</span></div>}
+                {deal.ancillariesValue > 0 && <div className="calc-panel-row"><span>Ancillaries (+{(overrides.ancillariesPct * 100).toFixed(1)}%)</span><span>+{fmt(deal.ancillariesValue)}</span></div>}
+              </div>
+            )}
+
+            {deal.contentBudgetBonus > 0 && (
+              <div className="calc-panel-section">
+                <h4>Content Budget Bonus</h4>
+                <div className="calc-panel-row"><span>+{(overrides.contentBonusPct * 100).toFixed(0)}% of content budget</span><span>+{fmt(deal.contentBudgetBonus)}</span></div>
+              </div>
+            )}
+
+            {deal.allUpfrontDiscount > 0 && (
+              <div className="calc-panel-section">
+                <h4>All Upfront Discount</h4>
+                <div className="calc-panel-row calc-panel-row-negative"><span>−{(overrides.allUpfrontDiscountPct * 100).toFixed(0)}%</span><span>−{fmt(deal.allUpfrontDiscount)}</span></div>
               </div>
             )}
 
             <div className="calc-panel-total">
               <span>Grand Total</span>
               <span>{fmt(deal.totalDealValue)}</span>
+            </div>
+
+            {/* Budget Split & Payment Schedule */}
+            <div className="calc-panel-section" style={{ marginTop: '1rem' }}>
+              <h4>Budget Split</h4>
+              <div className="calc-panel-row"><span>Advance ({(overrides.advanceSplitPct * 100).toFixed(0)}%)</span><span>{fmt(deal.advanceBudget)}</span></div>
+              <div className="calc-panel-row"><span>Marketing Split ({((1 - overrides.advanceSplitPct) * 100).toFixed(0)}%)</span><span>{fmt(deal.marketingBudget)}</span></div>
+              {deal.contentBudget > 0 && <div className="calc-panel-row"><span>Content Budget</span><span>−{fmt(deal.contentBudget)}</span></div>}
+              <div className="calc-panel-row calc-panel-row-sub"><span>Adjusted Advance</span><span>{fmt(deal.adjustedAdvance)}</span></div>
+            </div>
+
+            <div className="calc-panel-section">
+              <h4>Payment Schedule</h4>
+              {inputs.allUpfront ? (
+                <div className="calc-panel-row"><span>Full Payment (Signing)</span><span>{fmt(deal.signingPayment)}</span></div>
+              ) : (
+                <>
+                  <div className="calc-panel-row"><span>Signing (25%)</span><span>{fmt(deal.signingPayment)}</span></div>
+                  <div className="calc-panel-row"><span>Back Catalog Delivery (25%)</span><span>{fmt(deal.backCatalogDeliveryPayment)}</span></div>
+                  <div className="calc-panel-row"><span>½ New Songs (25%)</span><span>{fmt(deal.halfSongsPayment)}</span></div>
+                  <div className="calc-panel-row"><span>Other ½ (25%)</span><span>{fmt(deal.otherHalfPayment)}</span></div>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -657,12 +836,14 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
                 <div className="share-deal-review-grid">
                   <div className="share-deal-review-col">
                     <h4>Deal Parameters</h4>
-                    <div className="share-deal-review-row"><span>Back Catalog</span><span>{inputs.backCatalogCount} songs → {fmt(deal.backCatalogValue)}</span></div>
-                    <div className="share-deal-review-row"><span>Front Catalog</span><span>{inputs.frontCatalogCount} songs → {fmt(deal.frontCatalogValue)}</span></div>
+                    <div className="share-deal-review-row"><span>Back Catalog</span><span>{inputs.backCatalogCount} songs × {inputs.backCatalogMonthMultiple}× → {fmt(deal.backCatalogValue)}</span></div>
+                    <div className="share-deal-review-row"><span>Front Catalog</span><span>{inputs.frontCatalogCount} songs × {inputs.frontCatalogMonthMultiplier}mo → {fmt(deal.frontCatalogValue)}</span></div>
                     <div className="share-deal-review-row"><span>Exclusivity</span><span>{inputs.exclusivityMonths}mo (×{deal.exclusivityMultiplier.toFixed(2)})</span></div>
+                    <div className="share-deal-review-row"><span>License Period</span><span>{inputs.licensePeriod} (×{deal.licensePeriodMultiplier.toFixed(2)})</span></div>
                     <div className="share-deal-review-row"><span>Artist Royalty</span><span>{inputs.artistRoyaltyPct}% (×{deal.royaltyMultiplier.toFixed(2)})</span></div>
-                    <div className="share-deal-review-row"><span>Options</span><span>{inputs.optionCount} × {inputs.optionPeriodMonths}mo</span></div>
-                    <div className="share-deal-review-row"><span>Publishing</span><span>{inputs.publishing === 'none' ? 'None' : inputs.publishing === 'admin25' ? '25% Admin' : '50% Co-Pub'}</span></div>
+                    <div className="share-deal-review-row"><span>Options</span><span>{inputs.optionCount} ({inputs.optionPct}%, −{inputs.optionDecayPct}%/opt)</span></div>
+                    <div className="share-deal-review-row"><span>Goodwill</span><span>+{inputs.goodwillBonusPct}%</span></div>
+                    <div className="share-deal-review-row"><span>Marketing</span><span>{inputs.marketingBudgetPct}% ({fmt(deal.marketingBudgetValue)})</span></div>
                     <div className="share-deal-review-row share-deal-review-total"><span>Total Deal Value</span><span>{fmt(deal.totalDealValue)}</span></div>
                   </div>
 
@@ -815,4 +996,3 @@ export default function OfferCalculatorPanel({ distrokid, artistId }: OfferCalcu
     </div>
   );
 }
-

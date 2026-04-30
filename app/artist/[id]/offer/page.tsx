@@ -278,12 +278,30 @@ export default function OfferReviewPage() {
                 </div>
                 <div className="offer-detail">
                   <span className="offer-detail-label">Options</span>
-                  <span>{artistInputs.optionCount} × {artistInputs.optionPeriodMonths}mo → {fmt(artistDeal.totalOptionsValue)}</span>
+                  <span>{artistInputs.optionCount} ({artistInputs.optionPct || 80}%, −{artistInputs.optionDecayPct || 10}%/opt) → {fmt(artistDeal.totalOptionsValue)}</span>
+                </div>
+                <div className="offer-detail">
+                  <span className="offer-detail-label">License Period</span>
+                  <span>{artistInputs.licensePeriod || 'perpetuity'}</span>
                 </div>
                 <div className="offer-detail">
                   <span className="offer-detail-label">Publishing</span>
                   <span>{artistInputs.publishing === 'none' ? 'None' : artistInputs.publishing === 'admin25' ? '25% Admin' : '50% Co-Pub'} → {fmt(artistDeal.publishingValue)}</span>
                 </div>
+                <div className="offer-detail">
+                  <span className="offer-detail-label">Marketing Budget</span>
+                  <span>{artistInputs.marketingBudgetPct || 10}% ({fmt(artistDeal.marketingBudgetValue)})</span>
+                </div>
+                <div className="offer-detail">
+                  <span className="offer-detail-label">Content Budget</span>
+                  <span>{artistInputs.contentBudgetPct}%</span>
+                </div>
+                {artistDeal.goodwillValue > 0 && (
+                  <div className="offer-detail">
+                    <span className="offer-detail-label">Goodwill Bonus</span>
+                    <span>+{artistInputs.goodwillBonusPct || 0}% ({fmt(artistDeal.goodwillValue)})</span>
+                  </div>
+                )}
                 <div className="offer-detail">
                   <span className="offer-detail-label">ROFR</span>
                   <span>{artistInputs.rightOfFirstRefusal ? 'Yes' : 'No'}</span>
@@ -299,10 +317,6 @@ export default function OfferReviewPage() {
                 <div className="offer-detail">
                   <span className="offer-detail-label">All Upfront</span>
                   <span>{artistInputs.allUpfront ? 'Yes' : 'No'}</span>
-                </div>
-                <div className="offer-detail">
-                  <span className="offer-detail-label">Content Budget</span>
-                  <span>{artistInputs.contentBudgetPct}%</span>
                 </div>
               </div>
 
@@ -402,14 +416,17 @@ export default function OfferReviewPage() {
                       onClick={() => update({ optionCount: n })}>{n}</button>
                   ))}
                 </div>
-                {internalInputs.optionCount > 0 && (
-                  <div className="offer-toggle-row offer-toggle-row-sub">
-                    {([8, 12, 16] as const).map(m => (
-                      <button key={m} className={`offer-toggle ${internalInputs.optionPeriodMonths === m ? 'active' : ''}`}
-                        onClick={() => update({ optionPeriodMonths: m })}>{m}mo</button>
-                    ))}
-                  </div>
-                )}
+              </div>
+
+              {/* License Period */}
+              <div className="offer-ctrl">
+                <div className="offer-ctrl-header"><span>License Period</span></div>
+                <div className="offer-toggle-row">
+                  {(['6yr', '12yr', '20yr', 'perpetuity'] as const).map(lp => (
+                    <button key={lp} className={`offer-toggle ${internalInputs.licensePeriod === lp ? 'active' : ''}`}
+                      onClick={() => update({ licensePeriod: lp })}>{lp === 'perpetuity' ? 'Perpetuity' : lp.replace('yr', ' Years')}</button>
+                  ))}
+                </div>
               </div>
 
               {/* Publishing */}
@@ -430,7 +447,41 @@ export default function OfferReviewPage() {
                 </div>
               </div>
 
-              {/* Add-Ons */}
+              {/* Content Budget */}
+              <div className="offer-ctrl">
+                <div className="offer-ctrl-header"><span>Content Budget</span></div>
+                <div className="offer-ctrl-slider">
+                  <label>Content Budget: {internalInputs.contentBudgetPct}%</label>
+                  <input type="range" min={0} max={50} value={internalInputs.contentBudgetPct}
+                    aria-label="Content budget percentage" onChange={e => update({ contentBudgetPct: +e.target.value })} />
+                </div>
+              </div>
+
+              {/* Marketing Budget */}
+              <div className="offer-ctrl">
+                <div className="offer-ctrl-header">
+                  <span>Marketing Budget</span>
+                  <span>{internalInputs.marketingBudgetPct}% ({fmt(internalDeal.marketingBudgetValue)})</span>
+                </div>
+                <div className="offer-ctrl-slider">
+                  <input type="range" min={5} max={30} value={internalInputs.marketingBudgetPct}
+                    aria-label="Marketing budget percentage" onChange={e => update({ marketingBudgetPct: +e.target.value })} />
+                </div>
+              </div>
+
+              {/* Goodwill Bonus */}
+              <div className="offer-ctrl">
+                <div className="offer-ctrl-header">
+                  <span>Goodwill Bonus</span>
+                  <span>{internalInputs.goodwillBonusPct || 0}%{internalDeal.goodwillValue > 0 ? ` (${fmt(internalDeal.goodwillValue)})` : ''}</span>
+                </div>
+                <div className="offer-ctrl-slider">
+                  <input type="range" min={0} max={20} step={0.5} value={internalInputs.goodwillBonusPct || 0}
+                    aria-label="Goodwill bonus percentage" onChange={e => update({ goodwillBonusPct: +e.target.value })} />
+                </div>
+              </div>
+
+              {/* Deal Add-Ons */}
               <div className="offer-ctrl">
                 <div className="offer-ctrl-header"><span>Add-Ons</span></div>
                 <label className="offer-check">
@@ -458,11 +509,6 @@ export default function OfferReviewPage() {
                     onChange={e => update({ allUpfront: e.target.checked })} />
                   <span>All Upfront (−15%)</span>
                 </label>
-                <div className="offer-ctrl-slider offer-ctrl-slider-sub">
-                  <label>Content Budget: {internalInputs.contentBudgetPct}%</label>
-                  <input type="range" min={0} max={50} value={internalInputs.contentBudgetPct}
-                    aria-label="Content budget percentage" onChange={e => update({ contentBudgetPct: +e.target.value })} />
-                </div>
               </div>
 
               {/* Payment Schedule */}

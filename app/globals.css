@@ -3474,6 +3474,87 @@ a:focus-visible {
   font-size: 0.8rem;
 }
 
+/* ── Data Range Selector ── */
+.calc-panel-datarange {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.calc-panel-datarange-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.calc-panel-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  width: 100%;
+}
+.calc-panel-custom-range input[type="month"] {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.72rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  flex: 1;
+}
+.calc-panel-custom-range span {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+}
+
+/* ── Song Visibility Dropdown ── */
+.calc-panel-song-dropdown {
+  margin-top: 0.5rem;
+}
+.calc-panel-song-dropdown-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+}
+.calc-panel-song-dropdown-btn:hover {
+  border-color: rgba(99, 102, 241, 0.15);
+  color: var(--text-secondary);
+}
+.calc-panel-song-list {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  max-height: 200px;
+  overflow-y: auto;
+  background: rgba(99, 102, 241, 0.04);
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  border-radius: 6px;
+  animation: slideDown 0.15s ease-out;
+}
+.calc-panel-song-list li {
+  padding: 0.2rem 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+.calc-panel-song-list li:last-child { border-bottom: none; }
+
+
 
 /* ============================================================
    Deal Share — Public Artist-Facing Calculator (SongCash Layout)
